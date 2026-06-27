@@ -346,11 +346,10 @@ function TooltipRenderer:AddRatingLine(tooltip, gameMode, rating)
     
     -- Format rating with color coding (Requirements 2.2, 2.3, 2.4, 2.5)
     local coloredRating = PvPTooltip.ColorUtils:FormatColoredRating(rating or 0)
-    
-    -- Create properly aligned line with consistent spacing
-    local formattedLine = self:FormatAlignedLine(gameModeLabel, coloredRating)
-    
-    tooltip:AddLine(formattedLine)
+
+    -- Two-column line: WoW aligns the right value for us (proportional font, so
+    -- space padding cannot align columns).
+    tooltip:AddDoubleLine(gameModeLabel, coloredRating)
 end
 
 -- Add a single season statistics line to the tooltip (Requirements 4.2, 4.3, 4.4, 4.5)
@@ -364,57 +363,9 @@ function TooltipRenderer:AddSeasonLine(tooltip, gameMode, playedTotal, winRate)
     
     -- Format win rate display (Requirements 4.2, 4.3, 4.4, 4.5)
     local coloredWinRate = PvPTooltip.ColorUtils:FormatColoredWinRate(playedTotal or 0, winRate or 0)
-    
-    -- Create properly aligned line with consistent spacing
-    local formattedLine = self:FormatAlignedLine(gameModeLabel, coloredWinRate)
-    
-    tooltip:AddLine(formattedLine)
-end
 
--- Format aligned line with consistent spacing (Requirement 6.4)
-function TooltipRenderer:FormatAlignedLine(leftText, rightText)
-    if not leftText or not rightText then
-        return ""
-    end
-    
-    -- Calculate spacing for alignment
-    local maxLineLength = PvPTooltip.Config.Tooltip.maxLineLength or 40
-    local indentSpaces = PvPTooltip.Config.Tooltip.indentSpaces or 2
-    
-    -- Add indentation
-    local indent = string.rep(" ", indentSpaces)
-    
-    -- Calculate available space for alignment
-    -- We need to account for WoW color codes in the text length calculation
-    local leftTextLength = self:GetDisplayLength(leftText)
-    local rightTextLength = self:GetDisplayLength(rightText)
-    
-    -- Calculate spacing needed
-    local totalContentLength = leftTextLength + rightTextLength
-    local availableSpace = maxLineLength - indentSpaces
-    
-    if totalContentLength >= availableSpace then
-        -- If content is too long, just use minimal spacing
-        return indent .. leftText .. " " .. rightText
-    else
-        -- Calculate spacing for right alignment
-        local spacingNeeded = availableSpace - totalContentLength
-        local spacing = string.rep(" ", math.max(1, spacingNeeded))
-        return indent .. leftText .. spacing .. rightText
-    end
-end
-
--- Get display length of text (excluding WoW color codes)
-function TooltipRenderer:GetDisplayLength(text)
-    if not text then
-        return 0
-    end
-    
-    -- Remove WoW color codes (|cffXXXXXX and |r)
-    local cleanText = string.gsub(text, "|c%x%x%x%x%x%x%x%x", "")
-    cleanText = string.gsub(cleanText, "|r", "")
-    
-    return string.len(cleanText)
+    -- Two-column line: WoW aligns the right value for us.
+    tooltip:AddDoubleLine(gameModeLabel, coloredWinRate)
 end
 
 -- Validate player data structure before rendering
