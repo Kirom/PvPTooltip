@@ -143,10 +143,9 @@ function PvPTooltip:SetEnabled(enabled)
             self.EventManager:RegisterTooltipEvents()
         end
     else
+        -- The modern tooltip hook can't be removed; OnUnitTooltip gates on
+        -- IsReady(), so a disabled addon simply skips enhancement.
         self:Print("Addon disabled")
-        if self.EventManager and self.EventManager.UnregisterTooltipEvents then
-            self.EventManager:UnregisterTooltipEvents()
-        end
     end
 end
 
