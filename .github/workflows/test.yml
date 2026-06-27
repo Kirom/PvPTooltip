@@ -54,8 +54,8 @@ jobs:
           test -f "README.md" || { echo "::error:: Missing README.md"; exit 1; }
           test -d "src/" || { echo "::error:: Missing src/ directory"; exit 1; }
 
-          # Check for common Lua files
-          test -f "src/core.lua" || { echo "::error:: Missing core.lua"; exit 1; }
+          # Check for the addon entry point
+          test -f "src/Core/Addon.lua" || { echo "::error:: Missing src/Core/Addon.lua"; exit 1; }
 
           echo "OK: File structure validation passed"
 
