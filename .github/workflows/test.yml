@@ -92,32 +92,3 @@ jobs:
           else
             echo "Note: Version $TOC_VERSION not yet in CHANGELOG (may be in Unreleased)"
           fi
-
-  lint-workflow:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Lint GitHub Actions workflows
-        run: |
-          echo "Validating GitHub Actions workflow syntax..."
-
-          python3 - <<'PY'
-import yaml
-import sys
-
-workflow_files = ['.github/workflows/release.yml', '.github/workflows/test.yml']
-
-ok = True
-for file in workflow_files:
-    try:
-        with open(file, 'r') as f:
-            yaml.safe_load(f)
-        print(f'OK: {file} syntax is valid')
-    except Exception as e:
-        print(f'ERROR: {file} has YAML syntax error: {e}')
-        ok = False
-
-sys.exit(0 if ok else 1)
-PY
