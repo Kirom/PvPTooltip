@@ -1,0 +1,203 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+        default: 'v1.0.0'
+
+env:
+  CF_API_KEY: ${{ secrets.CURSEFORGE_TOKEN }}
+  WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+
+jobs:
+  # Pre-release validation
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version information
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION=$(git describe --tags --abbrev=0)
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version_clean=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "Preparing release for version: ${VERSION}"
+
+      - name: Validate release prerequisites
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Validating release prerequisites for ${VERSION}..."
+          
+          # Check if release notes exist
+          if [ ! -f "ReleaseNotes/${VERSION}.md" ]; then
+            echo "::error::Release notes not found at ReleaseNotes/${VERSION}.md"
+            exit 1
+          fi
+          
+          # Check required files exist
+          test -f "PvPTooltip.toc" || { echo "::error::Missing TOC file"; exit 1; }
+          test -f "CHANGELOG.md" || { echo "::error::Missing CHANGELOG.md"; exit 1; }
+          test -f "README.md" || { echo "::error::Missing README.md"; exit 1; }
+          test -f ".pkgmeta" || { echo "::error::Missing .pkgmeta"; exit 1; }
+          test -d "src/" || { echo "::error::Missing src/ directory"; exit 1; }
+          
+          echo "✅ All prerequisite files found"
+
+      - name: Validate Lua syntax
+        run: |
+          echo "Installing luacheck..."
+          sudo apt-get update
+          sudo apt-get install -y luarocks
+          sudo luarocks install luacheck
+
+          echo "Running luacheck on Lua files..."
+          if ! luacheck src/; then
+            echo "::error::Lua syntax validation failed. Please fix the issues before releasing."
+            exit 1
+          fi
+          echo "✅ Lua syntax validation passed"
+
+      - name: Validate TOC file
+        run: |
+          echo "Validating TOC file..."
+          
+          # Check required fields
+          grep -q "^## Interface:" PvPTooltip.toc || { echo "::error::Missing Interface field"; exit 1; }
+          grep -q "^## Title:" PvPTooltip.toc || { echo "::error::Missing Title field"; exit 1; }
+          grep -q "^## Version:" PvPTooltip.toc || { echo "::error::Missing Version field"; exit 1; }
+          grep -q "^## Author:" PvPTooltip.toc || { echo "::error::Missing Author field"; exit 1; }
+          
+          echo "✅ TOC file validation passed"
+
+  # Main release job
+  release:
+    runs-on: ubuntu-latest
+    needs: validate
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get version information
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION=$(git describe --tags --abbrev=0)
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version_clean=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "Processing release for version: ${VERSION}"
+      
+      - name: Update CHANGELOG.md from ReleaseNotes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RELEASE_NOTES_FILE="ReleaseNotes/${VERSION}.md"
+          
+          if [ -f "${RELEASE_NOTES_FILE}" ]; then
+            echo "Updating CHANGELOG.md with release notes for ${VERSION}"
+            
+            # Create a temporary file for the new changelog
+            TEMP_CHANGELOG=$(mktemp)
+            
+            # Extract the release notes content (skip the first "# Changelog" line if present)
+            if grep -q "^# Changelog" "${RELEASE_NOTES_FILE}"; then
+              tail -n +2 "${RELEASE_NOTES_FILE}" > "${TEMP_CHANGELOG}"
+            else
+              cp "${RELEASE_NOTES_FILE}" "${TEMP_CHANGELOG}"
+            fi
+            
+            # Create the new CHANGELOG.md
+            echo "# Changelog" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "All notable changes to PvP Tooltip will be documented in this file." >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)," >> CHANGELOG.md
+            echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            
+            # Add the new release notes
+            cat "${TEMP_CHANGELOG}" >> CHANGELOG.md
+            
+            # Clean up
+            rm "${TEMP_CHANGELOG}"
+            
+            echo "✅ CHANGELOG.md updated successfully"
+          else
+            echo "::error::Release notes not found at ${RELEASE_NOTES_FILE}"
+            exit 1
+          fi
+      
+      - name: Update .toc version
+        run: |
+          VERSION_CLEAN="${{ steps.version.outputs.version_clean }}"
+          echo "Updating TOC version to ${VERSION_CLEAN}"
+          
+          # Update version in TOC file
+          sed -i "s/^## Version: .*/## Version: ${VERSION_CLEAN}/" PvPTooltip.toc
+          
+          # Verify the update was successful
+          if grep -q "^## Version: ${VERSION_CLEAN}" PvPTooltip.toc; then
+            echo "✅ TOC version updated successfully to ${VERSION_CLEAN}"
+          else
+            echo "::error::Failed to update TOC version"
+            exit 1
+          fi
+      
+      - name: Extract release notes for GitHub release
+        id: release_notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RELEASE_NOTES_FILE="ReleaseNotes/${VERSION}.md"
+          
+          if [ -f "${RELEASE_NOTES_FILE}" ]; then
+            # Extract just the release content for GitHub release (skip changelog headers)
+            RELEASE_CONTENT=$(sed -n '/^## \[.*\]/,/^## \[.*\]/p' "${RELEASE_NOTES_FILE}" | head -n -1)
+            if [ -z "$RELEASE_CONTENT" ]; then
+              # Fallback: use everything after the first version header
+              RELEASE_CONTENT=$(sed -n '/^## /,$p' "${RELEASE_NOTES_FILE}")
+            fi
+            
+            # Save to file for GitHub release
+            echo "$RELEASE_CONTENT" > release_notes.txt
+            echo "✅ Release notes extracted for GitHub release"
+          else
+            echo "Release ${VERSION}" > release_notes.txt
+            echo "⚠️ Using default release notes"
+          fi
+      
+      - name: Commit updated files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md PvPTooltip.toc
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update CHANGELOG.md and version for release ${{ steps.version.outputs.version }}"
+            echo "✅ Files committed successfully"
+          fi
+      
+      - name: Package and release
+        uses: BigWigsMods/packager@v2
+        env:
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}

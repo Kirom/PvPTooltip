@@ -1,0 +1,29 @@
+package-as: PvPTooltip
+
+externals:
+
+ignore:
+  - .github
+  - .git
+  - .gitignore
+  - .kiro
+  - scripts
+  - tests
+  - PLAN.md
+  - ERROR_HANDLING_SUMMARY.md
+  - PERFORMANCE_OPTIMIZATIONS.md
+  - ReleaseNotes
+  - .pkgmeta
+  - luacheck.exe
+  - release_notes.txt
+
+manual-changelog: CHANGELOG.md
+
+license-output: LICENSE.txt
+
+# Enable automatic changelog generation from git tags
+enable-nolib-creation: no
+
+# Ensure proper file structure for distribution
+move-folders:
+  PvPTooltip/src: PvPTooltip

@@ -1,0 +1,123 @@
+name: Test & Validate
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate TOC file
+        run: |
+          echo "Validating TOC file..."
+
+          # Check if TOC file exists
+          if [ ! -f "PvPTooltip.toc" ]; then
+            echo "::error:: TOC file not found!"
+            exit 1
+          fi
+
+          # Check required fields
+          grep -q "^## Interface:" PvPTooltip.toc || { echo "::error:: Missing Interface field"; exit 1; }
+          grep -q "^## Title:" PvPTooltip.toc || { echo "::error:: Missing Title field"; exit 1; }
+          grep -q "^## Version:" PvPTooltip.toc || { echo "::error:: Missing Version field"; exit 1; }
+          grep -q "^## Author:" PvPTooltip.toc || { echo "::error:: Missing Author field"; exit 1; }
+
+          echo "OK: TOC file validation passed"
+
+      - name: Validate Lua syntax
+        run: |
+          echo "Installing luacheck..."
+          sudo apt-get update
+          sudo apt-get install -y luarocks
+          sudo luarocks install luacheck
+
+          echo "Running luacheck on Lua files..."
+          if ! luacheck src/; then
+            echo "::error:: Lua syntax validation failed. Please fix the issues before releasing."
+            exit 1
+          fi
+
+      - name: Validate file structure
+        run: |
+          echo "Validating project structure..."
+
+          # Check core files exist
+          test -f "PvPTooltip.toc" || { echo "::error:: Missing TOC file"; exit 1; }
+          test -f "CHANGELOG.md" || { echo "::error:: Missing CHANGELOG.md"; exit 1; }
+          test -f "README.md" || { echo "::error:: Missing README.md"; exit 1; }
+          test -d "src/" || { echo "::error:: Missing src/ directory"; exit 1; }
+
+          # Check for common Lua files
+          test -f "src/core.lua" || { echo "::error:: Missing core.lua"; exit 1; }
+
+          echo "OK: File structure validation passed"
+
+      - name: Test package creation
+        run: |
+          echo "Testing package creation..."
+
+          # Create a test package
+          mkdir -p test-release/PvPTooltip
+          cp PvPTooltip.toc test-release/PvPTooltip/
+          cp -r src/ test-release/PvPTooltip/
+
+          # Create test archive
+          cd test-release
+          zip -r ../test-package.zip PvPTooltip/
+          cd ..
+
+          # Verify archive contents
+          unzip -l test-package.zip
+
+          echo "OK: Package creation test passed"
+
+      - name: Validate version consistency
+        run: |
+          echo "Checking version consistency..."
+
+          # Extract version from TOC
+          TOC_VERSION=$(grep "^## Version:" PvPTooltip.toc | cut -d: -f2 | tr -d ' ')
+          echo "TOC Version: $TOC_VERSION"
+
+          # Check if CHANGELOG mentions this version
+          if grep -q "## \[$TOC_VERSION\]" CHANGELOG.md; then
+            echo "OK: Version $TOC_VERSION found in CHANGELOG"
+          else
+            echo "Note: Version $TOC_VERSION not yet in CHANGELOG (may be in Unreleased)"
+          fi
+
+  lint-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint GitHub Actions workflows
+        run: |
+          echo "Validating GitHub Actions workflow syntax..."
+
+          python3 - <<'PY'
+import yaml
+import sys
+
+workflow_files = ['.github/workflows/release.yml', '.github/workflows/test.yml']
+
+ok = True
+for file in workflow_files:
+    try:
+        with open(file, 'r') as f:
+            yaml.safe_load(f)
+        print(f'OK: {file} syntax is valid')
+    except Exception as e:
+        print(f'ERROR: {file} has YAML syntax error: {e}')
+        ok = False
+
+sys.exit(0 if ok else 1)
+PY

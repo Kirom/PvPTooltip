@@ -1,0 +1,177 @@
+name: Validate Release
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'ReleaseNotes/**'
+      - 'PvPTooltip.toc'
+      - 'CHANGELOG.md'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to validate (e.g., v1.0.1)'
+        required: true
+
+jobs:
+  validate-release-preparation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version from input or detect from changes
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Try to detect version from changed files
+            VERSION=$(git diff --name-only HEAD~1 HEAD | grep "ReleaseNotes/" | head -1 | sed 's|ReleaseNotes/||' | sed 's|\.md||' || echo "")
+            if [ -z "$VERSION" ]; then
+              # Try to get version from TOC file
+              VERSION="v$(grep "^## Version:" PvPTooltip.toc | cut -d: -f2 | tr -d ' ')"
+            fi
+          fi
+          
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not determine version to validate"
+            exit 1
+          fi
+          
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Validating release preparation for version: ${VERSION}"
+
+      - name: Validate release notes exist
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RELEASE_NOTES_FILE="ReleaseNotes/${VERSION}.md"
+          
+          if [ ! -f "$RELEASE_NOTES_FILE" ]; then
+            echo "::error::Release notes not found at $RELEASE_NOTES_FILE"
+            exit 1
+          fi
+          
+          echo "✅ Release notes found at $RELEASE_NOTES_FILE"
+
+      - name: Validate release notes content
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RELEASE_NOTES_FILE="ReleaseNotes/${VERSION}.md"
+          
+          # Check if release notes have actual content
+          if ! grep -q "^### Added" "$RELEASE_NOTES_FILE" && ! grep -q "^### Changed" "$RELEASE_NOTES_FILE" && ! grep -q "^### Fixed" "$RELEASE_NOTES_FILE"; then
+            echo "::error::Release notes appear to be missing standard sections (Added, Changed, Fixed)"
+            exit 1
+          fi
+          
+          # Check for placeholder content
+          if grep -q "^- $" "$RELEASE_NOTES_FILE"; then
+            echo "::warning::Release notes contain empty bullet points - please add content"
+          fi
+          
+          echo "✅ Release notes content validation passed"
+
+      - name: Validate TOC version consistency
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION_CLEAN="${VERSION#v}"
+          
+          # Check if TOC version matches
+          TOC_VERSION=$(grep "^## Version:" PvPTooltip.toc | cut -d: -f2 | tr -d ' ')
+          
+          if [ "$TOC_VERSION" != "$VERSION_CLEAN" ]; then
+            echo "::error::TOC version ($TOC_VERSION) does not match release version ($VERSION_CLEAN)"
+            exit 1
+          fi
+          
+          echo "✅ TOC version matches release version: $VERSION_CLEAN"
+
+      - name: Validate CHANGELOG.md format
+        run: |
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "::error::CHANGELOG.md not found"
+            exit 1
+          fi
+          
+          # Check basic changelog format
+          if ! grep -q "^# Changelog" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md missing main header"
+            exit 1
+          fi
+          
+          echo "✅ CHANGELOG.md format validation passed"
+
+      - name: Run Lua syntax check
+        run: |
+          echo "Installing luacheck..."
+          sudo apt-get update
+          sudo apt-get install -y luarocks
+          sudo luarocks install luacheck
+
+          echo "Running luacheck on Lua files..."
+          if ! luacheck src/; then
+            echo "::error::Lua syntax validation failed"
+            exit 1
+          fi
+          
+          echo "✅ Lua syntax validation passed"
+
+      - name: Validate package structure
+        run: |
+          echo "Validating package structure..."
+          
+          # Check required files
+          test -f "PvPTooltip.toc" || { echo "::error::Missing TOC file"; exit 1; }
+          test -f "CHANGELOG.md" || { echo "::error::Missing CHANGELOG.md"; exit 1; }
+          test -f "README.md" || { echo "::error::Missing README.md"; exit 1; }
+          test -f ".pkgmeta" || { echo "::error::Missing .pkgmeta"; exit 1; }
+          test -d "src/" || { echo "::error::Missing src/ directory"; exit 1; }
+          
+          # Check for core addon files
+          find src/ -name "*.lua" | head -1 > /dev/null || { echo "::error::No Lua files found in src/"; exit 1; }
+          
+          echo "✅ Package structure validation passed"
+
+      - name: Test package creation
+        run: |
+          echo "Testing package creation..."
+          
+          # Create a test package
+          mkdir -p test-release/PvPTooltip
+          cp PvPTooltip.toc test-release/PvPTooltip/
+          cp -r src/ test-release/PvPTooltip/
+          cp CHANGELOG.md test-release/PvPTooltip/
+          cp README.md test-release/PvPTooltip/
+          cp LICENSE test-release/PvPTooltip/LICENSE.txt
+          
+          # Create test archive
+          cd test-release
+          zip -r ../test-package.zip PvPTooltip/
+          cd ..
+          
+          # Verify archive contents
+          echo "Package contents:"
+          unzip -l test-package.zip
+          
+          # Check package size (should be reasonable)
+          PACKAGE_SIZE=$(stat -f%z test-package.zip 2>/dev/null || stat -c%s test-package.zip)
+          if [ "$PACKAGE_SIZE" -gt 10485760 ]; then  # 10MB
+            echo "::warning::Package size is quite large: $(($PACKAGE_SIZE / 1024 / 1024))MB"
+          fi
+          
+          echo "✅ Package creation test passed"
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "🎉 Release validation completed successfully for version ${VERSION}"
+          echo ""
+          echo "✅ Release notes exist and have content"
+          echo "✅ TOC version is consistent"
+          echo "✅ CHANGELOG.md format is valid"
+          echo "✅ Lua syntax is correct"
+          echo "✅ Package structure is valid"
+          echo "✅ Package creation works"
+          echo ""
+          echo "The release is ready to be published!"

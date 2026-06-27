@@ -1,0 +1,44 @@
+## Interface: 120007
+## Title: PvP Tooltip
+## Notes: Displays comprehensive PvP information in player tooltips including current ratings, personal bests, and season statistics for 2v2, 3v3, shuffle, RBG, and Blitz.
+## Version: 1.0.0
+## SavedVariables: PvPTooltipDB
+## DefaultState: enabled
+## X-Category: PvP
+## X-Website: https://github.com/PvPTooltip/PvPTooltip
+## X-Curse-Project-ID: 
+## X-Wago-ID: 
+## X-WoWI-ID: 
+
+# Database files (must be loaded first)
+src\db\db_regions.lua
+src\db\db_realms.lua
+src\db\db_pvp_eu_characters.lua
+src\db\db_pvp_us_characters.lua
+
+# Core addon initialization (must be loaded first)
+src\Core\Addon.lua
+
+# Core configuration and utilities
+src\Core\Config.lua
+src\Core\ErrorHandler.lua
+src\Core\DatabaseBridge.lua
+
+# Data management layer
+src\Data\DatabaseManager.lua
+src\Data\RealmResolver.lua
+src\Data\PlayerLookup.lua
+
+# UI components
+src\UI\ColorUtils.lua
+src\UI\TooltipRenderer.lua
+
+# Performance monitoring and optimization
+src\Core\PerformanceMonitor.lua
+
+# Event management (loaded after all modules)
+src\Core\EventManager.lua
+
+# Test files (optional, for development)
+src\Core\ErrorHandlingTests.lua
+src\Core\PerformanceTests.lua
