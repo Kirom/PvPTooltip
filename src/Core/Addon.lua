@@ -226,18 +226,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
                 PvPTooltip:Print("No errors recorded")
             end
         end
-    elseif command == "test" or command == "errortest" then
-        if PvPTooltip.ErrorHandlingTests and PvPTooltip.ErrorHandlingTests.QuickTest then
-            PvPTooltip.ErrorHandlingTests:QuickTest()
-        else
-            PvPTooltip:Print("Error handling tests not available")
-        end
-    elseif command == "fulltest" then
-        if PvPTooltip.ErrorHandlingTests and PvPTooltip.ErrorHandlingTests.RunAllTests then
-            PvPTooltip.ErrorHandlingTests:RunAllTests()
-        else
-            PvPTooltip:Print("Error handling tests not available")
-        end
     elseif command == "errors" then
         if PvPTooltipDB.errorLog and #PvPTooltipDB.errorLog > 0 then
             PvPTooltip:Print("Recent errors (last 10):")
@@ -305,18 +293,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         else
             PvPTooltip:Print("Performance monitoring not available")
         end
-    elseif command == "perftest" then
-        if PvPTooltip.PerformanceTests and PvPTooltip.PerformanceTests.QuickTest then
-            PvPTooltip.PerformanceTests:QuickTest()
-        else
-            PvPTooltip:Print("Performance tests not available")
-        end
-    elseif command == "perftest-full" then
-        if PvPTooltip.PerformanceTests and PvPTooltip.PerformanceTests.RunAllTests then
-            PvPTooltip.PerformanceTests:RunAllTests()
-        else
-            PvPTooltip:Print("Performance tests not available")
-        end
     elseif command == "demo" or command == "testtooltip" then
         PvPTooltip:Print("Creating demo tooltip...")
         
@@ -379,7 +355,7 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         local modules = {
             "Config", "ErrorHandler", "DatabaseManager", "RealmResolver", 
             "PlayerLookup", "ColorUtils", "TooltipRenderer", "EventManager", 
-            "PerformanceMonitor", "ErrorHandlingTests", "PerformanceTests"
+            "PerformanceMonitor"
         }
         
         for _, moduleName in ipairs(modules) do
@@ -408,15 +384,11 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("  /pvptooltip disable - Disable the addon")
         PvPTooltip:Print("  /pvptooltip debug - Toggle debug mode")
         PvPTooltip:Print("  /pvptooltip status - Show addon status")
-        PvPTooltip:Print("  /pvptooltip test - Run quick error handling tests")
-        PvPTooltip:Print("  /pvptooltip fulltest - Run comprehensive error handling tests")
         PvPTooltip:Print("  /pvptooltip errors - Show recent errors")
         PvPTooltip:Print("  /pvptooltip clearerrors - Clear error log")
         PvPTooltip:Print("  /pvptooltip performance - Show performance report")
         PvPTooltip:Print("  /pvptooltip perfstatus - Show performance status")
         PvPTooltip:Print("  /pvptooltip resetperf - Reset performance metrics")
-        PvPTooltip:Print("  /pvptooltip perftest - Run quick performance test")
-        PvPTooltip:Print("  /pvptooltip perftest-full - Run full performance test suite")
         PvPTooltip:Print("  /pvptooltip modules - Show module diagnostic information")
         PvPTooltip:Print("  /pvptooltip force - Force addon to ready state")
         PvPTooltip:Print("  /pvptooltip demo - Test tooltip rendering with demo data")

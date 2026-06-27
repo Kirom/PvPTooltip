@@ -38,7 +38,3 @@ src\Core\PerformanceMonitor.lua
 
 # Event management (loaded after all modules)
 src\Core\EventManager.lua
-
-# Test files (optional, for development)
-src\Core\ErrorHandlingTests.lua
-src\Core\PerformanceTests.lua
