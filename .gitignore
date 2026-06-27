@@ -1,5 +1,2 @@
 # Downloaded lint binary (not versioned)
 luacheck.exe
-
-# Agent / IDE workspace
-.kiro/
