@@ -9,8 +9,33 @@ function TooltipRenderer:Initialize()
     PvPTooltip:Debug("TooltipRenderer module initialized")
 end
 
+-- Resolve a specialization id to its localized name (e.g. 270 -> "Mistweaver").
+-- Returns nil when unavailable so callers can fall back gracefully.
+local function resolveSpecName(specId)
+    if not specId then
+        return nil
+    end
+    local ok, _, name = pcall(GetSpecializationInfoByID, specId)
+    if ok and name and name ~= "" then
+        return name
+    end
+    return nil
+end
+
+-- Normalize a bracket value to a list of entries. Per-spec brackets (shuffle/blitz
+-- with several specs) arrive as an array; single brackets as one table.
+local function getBracketEntries(bracketData)
+    if type(bracketData) ~= "table" then
+        return {}
+    end
+    if bracketData[1] ~= nil then
+        return bracketData
+    end
+    return { bracketData }
+end
+
 -- Main rendering function - enhances tooltip with PvP information with comprehensive error handling
-function TooltipRenderer:EnhanceTooltip(tooltip, playerData)
+function TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
     -- Handle missing data gracefully without breaking tooltips
     if not tooltip then
         PvPTooltip:Debug("No tooltip provided to EnhanceTooltip - graceful degradation")
@@ -39,19 +64,19 @@ function TooltipRenderer:EnhanceTooltip(tooltip, playerData)
         end
         
         -- Add current rating section (Requirement 2.1) with error protection
-        success = self:FormatRatingSection(tooltip, playerData.brackets)
+        success = self:FormatRatingSection(tooltip, playerData.brackets, currentSpec)
         if not success then
             PvPTooltip:Debug("Error formatting rating section - continuing with degraded display")
         end
-        
+
         -- Add character experience section (Requirement 3.1) with error protection
-        success = self:FormatExperienceSection(tooltip, playerData.brackets)
+        success = self:FormatExperienceSection(tooltip, playerData.brackets, currentSpec)
         if not success then
             PvPTooltip:Debug("Error formatting experience section - continuing with degraded display")
         end
-        
+
         -- Add current season section (Requirement 4.1) with error protection
-        success = self:FormatSeasonSection(tooltip, playerData.brackets)
+        success = self:FormatSeasonSection(tooltip, playerData.brackets, currentSpec)
         if not success then
             PvPTooltip:Debug("Error formatting season section - continuing with degraded display")
         end
@@ -130,7 +155,7 @@ function TooltipRenderer:AddSectionTitle(tooltip)
 end
 
 -- Create current rating display section with error handling (Requirement 2.1)
-function TooltipRenderer:FormatRatingSection(tooltip, brackets)
+function TooltipRenderer:FormatRatingSection(tooltip, brackets, currentSpec)
     if not tooltip then
         return false
     end
@@ -178,27 +203,28 @@ function TooltipRenderer:FormatRatingSection(tooltip, brackets)
     
     for _, gameMode in ipairs(gameModes) do
         local success, _ = pcall(function()
-            local bracketData = brackets[gameMode]
-            local rating = 0
-            
-            if bracketData and type(bracketData) == "table" and bracketData.currentRating then
-                rating = bracketData.currentRating
+            local entries = getBracketEntries(brackets[gameMode])
+            if #entries == 0 then
+                self:AddRatingLine(tooltip, gameMode, 0)
+                return
             end
-            
-            self:AddRatingLine(tooltip, gameMode, rating)
+            for _, entry in ipairs(entries) do
+                local label = self:GetEntryLabel(gameMode, entry, currentSpec)
+                self:AddRatingLine(tooltip, gameMode, entry.currentRating or 0, label)
+            end
         end)
-        
+
         if not success then
             PvPTooltip:Debug("Error adding rating line for game mode: " .. tostring(gameMode))
             -- Continue with other game modes instead of failing completely
         end
     end
-    
+
     return true
 end
 
 -- Create character experience (personal best) display section with error handling (Requirement 3.1)
-function TooltipRenderer:FormatExperienceSection(tooltip, brackets)
+function TooltipRenderer:FormatExperienceSection(tooltip, brackets, currentSpec)
     if not tooltip then
         return false
     end
@@ -246,27 +272,28 @@ function TooltipRenderer:FormatExperienceSection(tooltip, brackets)
     
     for _, gameMode in ipairs(gameModes) do
         local success, _ = pcall(function()
-            local bracketData = brackets[gameMode]
-            local personalBest = 0
-            
-            if bracketData and type(bracketData) == "table" and bracketData.personalBest then
-                personalBest = bracketData.personalBest
+            local entries = getBracketEntries(brackets[gameMode])
+            if #entries == 0 then
+                self:AddRatingLine(tooltip, gameMode, 0)
+                return
             end
-            
-            self:AddRatingLine(tooltip, gameMode, personalBest)
+            for _, entry in ipairs(entries) do
+                local label = self:GetEntryLabel(gameMode, entry, currentSpec)
+                self:AddRatingLine(tooltip, gameMode, entry.personalBest or 0, label)
+            end
         end)
-        
+
         if not success then
             PvPTooltip:Debug("Error adding experience line for game mode: " .. tostring(gameMode))
             -- Continue with other game modes instead of failing completely
         end
     end
-    
+
     return true
 end
 
 -- Create current season statistics display section with error handling (Requirement 4.1)
-function TooltipRenderer:FormatSeasonSection(tooltip, brackets)
+function TooltipRenderer:FormatSeasonSection(tooltip, brackets, currentSpec)
     if not tooltip then
         return false
     end
@@ -314,36 +341,55 @@ function TooltipRenderer:FormatSeasonSection(tooltip, brackets)
     
     for _, gameMode in ipairs(gameModes) do
         local success, _ = pcall(function()
-            local bracketData = brackets[gameMode]
-            local playedTotal = 0
-            local winRate = 0
-            
-            if bracketData and type(bracketData) == "table" then
-                playedTotal = bracketData.playedTotal or 0
-                winRate = bracketData.winRate or 0
+            local entries = getBracketEntries(brackets[gameMode])
+            if #entries == 0 then
+                self:AddSeasonLine(tooltip, gameMode, 0, 0)
+                return
             end
-            
-            self:AddSeasonLine(tooltip, gameMode, playedTotal, winRate)
+            for _, entry in ipairs(entries) do
+                local label = self:GetEntryLabel(gameMode, entry, currentSpec)
+                self:AddSeasonLine(tooltip, gameMode, entry.playedTotal or 0, entry.winRate or 0, label)
+            end
         end)
-        
+
         if not success then
             PvPTooltip:Debug("Error adding season line for game mode: " .. tostring(gameMode))
             -- Continue with other game modes instead of failing completely
         end
     end
-    
+
     return true
 end
 
+-- Build the left-column label for a per-spec bracket entry (shuffle/blitz). Returns
+-- nil for non-spec entries so callers use the default game-mode label. The unit's
+-- active spec (currentSpec) is marked; other specs are listed plainly.
+function TooltipRenderer:GetEntryLabel(gameMode, entry, currentSpec)
+    local specId = entry and entry.shuffleSpecId
+    if not specId then
+        return nil
+    end
+
+    local label = PvPTooltip.ColorUtils:FormatGameModeLabel(gameMode)
+    local specName = resolveSpecName(specId)
+    if specName then
+        label = label .. " |cFFB0B0B0(" .. specName .. ")|r"
+    end
+    if currentSpec and specId == currentSpec then
+        label = "|cFF00FF00>|r " .. label -- mark the hovered unit's active spec
+    end
+    return label
+end
+
 -- Add a single rating line to the tooltip (Requirements 2.2, 2.3, 2.4, 2.5)
-function TooltipRenderer:AddRatingLine(tooltip, gameMode, rating)
+function TooltipRenderer:AddRatingLine(tooltip, gameMode, rating, labelOverride)
     if not tooltip or not gameMode then
         return
     end
-    
+
     -- Format game mode label (Requirement 6.3)
-    local gameModeLabel = PvPTooltip.ColorUtils:FormatGameModeLabel(gameMode)
-    
+    local gameModeLabel = labelOverride or PvPTooltip.ColorUtils:FormatGameModeLabel(gameMode)
+
     -- Format rating with color coding (Requirements 2.2, 2.3, 2.4, 2.5)
     local coloredRating = PvPTooltip.ColorUtils:FormatColoredRating(rating or 0)
 
@@ -353,14 +399,14 @@ function TooltipRenderer:AddRatingLine(tooltip, gameMode, rating)
 end
 
 -- Add a single season statistics line to the tooltip (Requirements 4.2, 4.3, 4.4, 4.5)
-function TooltipRenderer:AddSeasonLine(tooltip, gameMode, playedTotal, winRate)
+function TooltipRenderer:AddSeasonLine(tooltip, gameMode, playedTotal, winRate, labelOverride)
     if not tooltip or not gameMode then
         return
     end
-    
+
     -- Format game mode label (Requirement 6.3)
-    local gameModeLabel = PvPTooltip.ColorUtils:FormatGameModeLabel(gameMode)
-    
+    local gameModeLabel = labelOverride or PvPTooltip.ColorUtils:FormatGameModeLabel(gameMode)
+
     -- Format win rate display (Requirements 4.2, 4.3, 4.4, 4.5)
     local coloredWinRate = PvPTooltip.ColorUtils:FormatColoredWinRate(playedTotal or 0, winRate or 0)
 
@@ -388,10 +434,15 @@ function TooltipRenderer:ValidatePlayerData(playerData)
     
     -- Check if at least one bracket has some data
     local hasData = false
-    for gameMode, bracketData in pairs(playerData.brackets) do
-        if type(bracketData) == "table" and 
-           (bracketData.currentRating or bracketData.personalBest or bracketData.playedTotal) then
-            hasData = true
+    for _, bracketData in pairs(playerData.brackets) do
+        for _, entry in ipairs(getBracketEntries(bracketData)) do
+            if type(entry) == "table" and
+               (entry.currentRating or entry.personalBest or entry.playedTotal) then
+                hasData = true
+                break
+            end
+        end
+        if hasData then
             break
         end
     end
@@ -438,17 +489,16 @@ function TooltipRenderer:HasDisplayableData(playerData)
     
     -- Check if any bracket has meaningful data
     for _, gameMode in ipairs(PvPTooltip.Config.GameModes) do
-        local bracketData = playerData.brackets[gameMode]
-        if bracketData then
+        for _, entry in ipairs(getBracketEntries(playerData.brackets[gameMode])) do
             -- Consider data displayable if there's a rating > 0 or games played > 0
-            if (bracketData.currentRating and bracketData.currentRating > 0) or
-               (bracketData.personalBest and bracketData.personalBest > 0) or
-               (bracketData.playedTotal and bracketData.playedTotal > 0) then
+            if (entry.currentRating and entry.currentRating > 0) or
+               (entry.personalBest and entry.personalBest > 0) or
+               (entry.playedTotal and entry.playedTotal > 0) then
                 return true
             end
         end
     end
-    
+
     return false
 end
 
@@ -468,34 +518,43 @@ function TooltipRenderer:GetTooltipPreview(playerData)
     table.insert(lines, "")
     table.insert(lines, PvPTooltip.Config.Tooltip.mainTitle)
     
+    -- A preview label: display name plus the spec name for per-spec entries.
+    local function previewLabel(gameMode, entry)
+        local displayName = PvPTooltip.Config:GetDisplayName(gameMode)
+        local specName = entry and entry.shuffleSpecId and resolveSpecName(entry.shuffleSpecId)
+        if specName then
+            return displayName .. " (" .. specName .. ")"
+        end
+        return displayName
+    end
+
     -- Current Rating section
     table.insert(lines, PvPTooltip.Config.Tooltip.currentRatingTitle)
     for _, gameMode in ipairs(PvPTooltip.Config.GameModes) do
-        local bracketData = playerData.brackets[gameMode]
-        local rating = (bracketData and bracketData.currentRating) or 0
-        local displayName = PvPTooltip.Config:GetDisplayName(gameMode)
-        table.insert(lines, string.format("  %s                    %d", displayName, rating))
+        for _, entry in ipairs(getBracketEntries(playerData.brackets[gameMode])) do
+            table.insert(lines, string.format("  %s                    %d",
+                previewLabel(gameMode, entry), entry.currentRating or 0))
+        end
     end
-    
+
     -- Character Experience section
     table.insert(lines, PvPTooltip.Config.Tooltip.experienceTitle)
     for _, gameMode in ipairs(PvPTooltip.Config.GameModes) do
-        local bracketData = playerData.brackets[gameMode]
-        local personalBest = (bracketData and bracketData.personalBest) or 0
-        local displayName = PvPTooltip.Config:GetDisplayName(gameMode)
-        table.insert(lines, string.format("  %s                    %d", displayName, personalBest))
+        for _, entry in ipairs(getBracketEntries(playerData.brackets[gameMode])) do
+            table.insert(lines, string.format("  %s                    %d",
+                previewLabel(gameMode, entry), entry.personalBest or 0))
+        end
     end
-    
+
     -- Current Season section
     table.insert(lines, PvPTooltip.Config.Tooltip.seasonTitle)
     for _, gameMode in ipairs(PvPTooltip.Config.GameModes) do
-        local bracketData = playerData.brackets[gameMode]
-        local playedTotal = (bracketData and bracketData.playedTotal) or 0
-        local winRate = (bracketData and bracketData.winRate) or 0
-        local displayName = PvPTooltip.Config:GetDisplayName(gameMode)
-        table.insert(lines, string.format("  %s                    %d (%.0f%% won)", displayName, playedTotal, winRate))
+        for _, entry in ipairs(getBracketEntries(playerData.brackets[gameMode])) do
+            table.insert(lines, string.format("  %s                    %d (%.0f%% won)",
+                previewLabel(gameMode, entry), entry.playedTotal or 0, entry.winRate or 0))
+        end
     end
-    
+
     return table.concat(lines, "\n")
 end
 

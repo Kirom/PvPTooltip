@@ -7,6 +7,8 @@
 --       CR, TotBest, SeasBest, TotG, WR, [SSSpec]
 --   }
 --   bracket key is one of: "2v2", "3v3", "rbg", "ss", "btz"
+--   Per-spec brackets (ss/btz) with several specs are instead an ARRAY of those
+--   tables, one per specialization: brackets["ss"] = { {CR,...,SSSpec}, {...} }.
 
 local DatabaseManager = {}
 PvPTooltip.DatabaseManager = DatabaseManager
@@ -132,6 +134,22 @@ local function mapBracket(b)
     }
 end
 
+-- A bracket value is either a single compact table {CR,...} or, for per-spec
+-- brackets (shuffle/blitz with several specs), an array of them. Normalize to the
+-- renderer schema, returning a single table or an array of tables to match.
+local function mapBracketValue(data)
+    if data[1] ~= nil then
+        local specs = {}
+        for i = 1, #data do
+            if type(data[i]) == "table" then
+                specs[#specs + 1] = mapBracket(data[i])
+            end
+        end
+        return specs
+    end
+    return mapBracket(data)
+end
+
 -- Retrieve player PvP data, normalized for the renderer.
 -- Returns nil when the player is not in the database (graceful degradation).
 function DatabaseManager:GetPlayerData(playerName, realmName, region)
@@ -164,7 +182,7 @@ function DatabaseManager:GetPlayerData(playerName, realmName, region)
     for compactKey, data in pairs(entry.brackets) do
         if type(data) == "table" then
             local mode = BRACKET_KEY_MAP[compactKey] or compactKey
-            brackets[mode] = mapBracket(data)
+            brackets[mode] = mapBracketValue(data)
         end
     end
 

@@ -74,8 +74,21 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
 
     PvPTooltip:Debug("Processing tooltip for unit: " .. tostring(unitName) .. " (" .. tostring(unitID) .. ")")
 
+    -- Best-effort: the hovered unit's active spec, used to highlight the matching
+    -- Solo Shuffle / Blitz line. Only available when inspect data is present (party,
+    -- arena, recently inspected); 0/nil otherwise, in which case all specs show plainly.
+    local currentSpec = nil
+    pcall(function()
+        if UnitIsPlayer(unitID) and GetInspectSpecialization then
+            local spec = GetInspectSpecialization(unitID)
+            if spec and spec > 0 then
+                currentSpec = spec
+            end
+        end
+    end)
+
     local enhanceOk, errorMsg = pcall(function()
-        self:EnhanceTooltipWithPvPInfo(tooltip, unitID)
+        self:EnhanceTooltipWithPvPInfo(tooltip, unitID, currentSpec)
     end)
 
     local processingTime = (GetTime() - processingStartTime) * 1000 -- ms
@@ -96,7 +109,7 @@ end
 
 -- Enhance tooltip with PvP information. Quiet graceful degradation on any failure
 -- so a broken lookup never breaks the underlying tooltip.
-function EventManager:EnhanceTooltipWithPvPInfo(tooltip, unitID)
+function EventManager:EnhanceTooltipWithPvPInfo(tooltip, unitID, currentSpec)
     if not PvPTooltip.PlayerLookup or not PvPTooltip.PlayerLookup.FindPlayerData then
         PvPTooltip:Debug("PlayerLookup module not available - graceful degradation")
         return
@@ -122,7 +135,7 @@ function EventManager:EnhanceTooltipWithPvPInfo(tooltip, unitID)
     end
 
     local renderOk, result = pcall(function()
-        return PvPTooltip.TooltipRenderer:EnhanceTooltip(tooltip, playerData)
+        return PvPTooltip.TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
     end)
     if not renderOk then
         PvPTooltip:Debug("Error enhancing tooltip with PvP data: " .. tostring(result) .. " - graceful degradation")
