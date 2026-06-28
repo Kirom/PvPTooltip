@@ -550,8 +550,11 @@ function TooltipRenderer:GetTooltipPreview(playerData)
     table.insert(lines, PvPTooltip.Config.Tooltip.seasonTitle)
     for _, gameMode in ipairs(PvPTooltip.Config.GameModes) do
         for _, entry in ipairs(getBracketEntries(playerData.brackets[gameMode])) do
-            table.insert(lines, string.format("  %s                    %d (%.0f%% won)",
-                previewLabel(gameMode, entry), entry.playedTotal or 0, entry.winRate or 0))
+            local played = entry.playedTotal or 0
+            local seasonStat = played == 0 and "0"
+                or string.format("%d (%.0f%% won)", played, entry.winRate or 0)
+            table.insert(lines, string.format("  %s                    %s",
+                previewLabel(gameMode, entry), seasonStat))
         end
     end
 

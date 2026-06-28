@@ -109,11 +109,13 @@ end
 -- @param winRate number - Win rate percentage (0-100)
 -- @return string - Formatted colored win rate text
 function ColorUtils:FormatColoredWinRate(playedTotal, winRate)
-    if not playedTotal or not winRate then
-        local defaultText = "0 (0% won)"
-        return self:FormatColoredText(defaultText, self:GetGamesPlayedColor())
+    -- No games played: show just the count, not a meaningless "(0% won)".
+    if not playedTotal or playedTotal == 0 then
+        return self:FormatColoredText("0", self:GetGamesPlayedColor())
     end
-    
+
+    winRate = winRate or 0
+
     -- Format games played in gold color
     local gamesText = self:FormatColoredText(tostring(playedTotal), self:GetGamesPlayedColor())
     
