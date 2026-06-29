@@ -349,34 +349,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltipDB.enabled = true
         PvPTooltip:Initialize()
         PvPTooltip:Print("Addon forced to ready state")
-    elseif command == "modules" or command == "diagnostic" then
-        PvPTooltip:Print("=== Module Diagnostic ===")
-        local modules = {
-            "Config", "ErrorHandler", "DatabaseManager", "RealmResolver", 
-            "PlayerLookup", "ColorUtils", "TooltipRenderer", "EventManager", 
-            "PerformanceMonitor"
-        }
-        
-        for _, moduleName in ipairs(modules) do
-            local module = PvPTooltip[moduleName]
-            if module and type(module) == "table" then
-                local methodCount = 0
-                local hasInitialize = false
-                for key, value in pairs(module) do
-                    if type(value) == "function" then
-                        methodCount = methodCount + 1
-                        if key == "Initialize" then
-                            hasInitialize = true
-                        end
-                    end
-                end
-                local status = hasInitialize and "✓" or "⚠"
-                PvPTooltip:Print(string.format("%s %s: %d methods%s", 
-                    status, moduleName, methodCount, hasInitialize and "" or " (no Initialize)"))
-            else
-                PvPTooltip:Print(string.format("✗ %s: Not available", moduleName))
-            end
-        end
     else
         PvPTooltip:Print("Commands:")
         PvPTooltip:Print("  /pvptooltip enable - Enable the addon")
@@ -388,7 +360,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("  /pvptooltip performance - Show performance report")
         PvPTooltip:Print("  /pvptooltip perfstatus - Show performance status")
         PvPTooltip:Print("  /pvptooltip resetperf - Reset performance metrics")
-        PvPTooltip:Print("  /pvptooltip modules - Show module diagnostic information")
         PvPTooltip:Print("  /pvptooltip force - Force addon to ready state")
         PvPTooltip:Print("  /pvptooltip demo - Test tooltip rendering with demo data")
     end
