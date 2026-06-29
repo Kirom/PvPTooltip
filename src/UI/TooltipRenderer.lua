@@ -34,6 +34,48 @@ local function getBracketEntries(bracketData)
     return { bracketData }
 end
 
+-- User settings (nil before first-run init → callers treat absence as "show all").
+local function settings()
+    return PvPTooltipDB and PvPTooltipDB.settings
+end
+
+-- A bracket is shown unless explicitly toggled off.
+local function bracketEnabled(gameMode)
+    local s = settings()
+    if not s or not s.brackets then
+        return true
+    end
+    return s.brackets[gameMode] ~= false
+end
+
+-- Per-spec entries (shuffle/blitz) honor the "show all specs" toggle. When off we
+-- show only the hovered unit's active spec; if that's unknown, show all (else the
+-- player would see nothing). Non-spec entries always pass.
+local function specVisible(entry, currentSpec)
+    local s = settings()
+    if not s or s.showAllSpecs ~= false then
+        return true
+    end
+    if not entry.shuffleSpecId or not currentSpec then
+        return true
+    end
+    return entry.shuffleSpecId == currentSpec
+end
+
+-- Render a subsection header (gold), tolerant of a missing ColorUtils.
+local function addHeader(tooltip, text)
+    local colored = "|cFFFFD035" .. text .. "|r"
+    if PvPTooltip.ColorUtils and PvPTooltip.ColorUtils.FormatSubsectionHeader then
+        local ok, result = pcall(function()
+            return PvPTooltip.ColorUtils:FormatSubsectionHeader(text)
+        end)
+        if ok and result then
+            colored = result
+        end
+    end
+    tooltip:AddLine(colored)
+end
+
 -- Main rendering function - enhances tooltip with PvP information with comprehensive error handling
 function TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
     -- Handle missing data gracefully without breaking tooltips
@@ -57,30 +99,39 @@ function TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
     
     -- Protect against tooltip rendering errors without breaking the tooltip system
     local success, result = pcall(function()
+        -- Section visibility settings (absent before first-run init -> show all).
+        local s = PvPTooltipDB and PvPTooltipDB.settings
+
         -- Add main section title (Requirement 6.1) with error protection
         local success = self:AddSectionTitle(tooltip)
         if not success then
             PvPTooltip:Debug("Error adding section title - continuing with degraded display")
         end
-        
+
         -- Add current rating section (Requirement 2.1) with error protection
-        success = self:FormatRatingSection(tooltip, playerData.brackets, currentSpec)
-        if not success then
-            PvPTooltip:Debug("Error formatting rating section - continuing with degraded display")
+        if not s or s.showRating then
+            success = self:FormatRatingSection(tooltip, playerData.brackets, currentSpec)
+            if not success then
+                PvPTooltip:Debug("Error formatting rating section - continuing with degraded display")
+            end
         end
 
         -- Add character experience section (Requirement 3.1) with error protection
-        success = self:FormatExperienceSection(tooltip, playerData.brackets, currentSpec)
-        if not success then
-            PvPTooltip:Debug("Error formatting experience section - continuing with degraded display")
+        if not s or s.showExperience then
+            success = self:FormatExperienceSection(tooltip, playerData.brackets, currentSpec)
+            if not success then
+                PvPTooltip:Debug("Error formatting experience section - continuing with degraded display")
+            end
         end
 
         -- Add current season section (Requirement 4.1) with error protection
-        success = self:FormatSeasonSection(tooltip, playerData.brackets, currentSpec)
-        if not success then
-            PvPTooltip:Debug("Error formatting season section - continuing with degraded display")
+        if not s or s.showSeason then
+            success = self:FormatSeasonSection(tooltip, playerData.brackets, currentSpec)
+            if not success then
+                PvPTooltip:Debug("Error formatting season section - continuing with degraded display")
+            end
         end
-        
+
         return true
     end)
     
@@ -154,211 +205,89 @@ function TooltipRenderer:AddSectionTitle(tooltip)
     return true
 end
 
--- Create current rating display section with error handling (Requirement 2.1)
+-- Render one bracket subsection. Shared by all three sections; the only
+-- differences are the header, which entry value decides "empty", and how a line
+-- is drawn. valueOf(entry) -> number used for the hideEmpty check; draw(tooltip,
+-- gameMode, entry, label) emits the line (entry is nil for an absent bracket).
+-- Applies the per-bracket, hide-empty, and show-all-specs settings filters.
+function TooltipRenderer:RenderSection(tooltip, brackets, currentSpec, header, valueOf, draw)
+    if not tooltip then
+        return false
+    end
+    if not brackets or type(brackets) ~= "table" then
+        PvPTooltip:Debug("No brackets data available for section - graceful degradation")
+        return false
+    end
+
+    local headerOk = pcall(addHeader, tooltip, header)
+    if not headerOk then
+        PvPTooltip:Debug("Error adding section header: " .. tostring(header))
+        return false
+    end
+
+    local hideEmpty = settings() and settings().hideEmpty
+    local gameModes = (PvPTooltip.Config and PvPTooltip.Config.GameModes)
+        or {"2v2", "3v3", "shuffle", "rbg", "blitz"}
+
+    for _, gameMode in ipairs(gameModes) do
+        if bracketEnabled(gameMode) then
+            local ok = pcall(function()
+                local entries = getBracketEntries(brackets[gameMode])
+                if #entries == 0 then
+                    if not hideEmpty then
+                        draw(tooltip, gameMode, nil, nil)
+                    end
+                    return
+                end
+                for _, entry in ipairs(entries) do
+                    if specVisible(entry, currentSpec)
+                       and not (hideEmpty and valueOf(entry) == 0) then
+                        local label = self:GetEntryLabel(gameMode, entry, currentSpec)
+                        draw(tooltip, gameMode, entry, label)
+                    end
+                end
+            end)
+            if not ok then
+                PvPTooltip:Debug("Error rendering bracket: " .. tostring(gameMode))
+            end
+        end
+    end
+
+    return true
+end
+
+-- Create current rating display section (Requirement 2.1)
 function TooltipRenderer:FormatRatingSection(tooltip, brackets, currentSpec)
-    if not tooltip then
-        return false
-    end
-    
-    -- Graceful degradation for missing brackets data
-    if not brackets or type(brackets) ~= "table" then
-        PvPTooltip:Debug("No brackets data available for rating section - graceful degradation")
-        return false
-    end
-    
-    -- Add section header with error protection (Requirement 6.2)
-    local success, _ = pcall(function()
-        local headerText = "Current Rating" -- Safe fallback
-        if PvPTooltip.Config and PvPTooltip.Config.Tooltip and PvPTooltip.Config.Tooltip.currentRatingTitle then
-            headerText = PvPTooltip.Config.Tooltip.currentRatingTitle
-        end
-        
-        local coloredHeader = headerText
-        if PvPTooltip.ColorUtils and PvPTooltip.ColorUtils.FormatSubsectionHeader then
-            local success, result = pcall(function()
-                return PvPTooltip.ColorUtils:FormatSubsectionHeader(headerText)
-            end)
-            if success and result then
-                coloredHeader = result
-            else
-                coloredHeader = "|cFFFFD035" .. headerText .. "|r" -- Fallback coloring
-            end
-        else
-            coloredHeader = "|cFFFFD035" .. headerText .. "|r" -- Fallback coloring
-        end
-        
-        tooltip:AddLine(coloredHeader)
-    end)
-    
-    if not success then
-        PvPTooltip:Debug("Error adding rating section header")
-        return false
-    end
-    
-    -- Add rating entries for each game mode with error protection
-    local gameModes = {"2v2", "3v3", "shuffle", "rbg", "blitz"} -- Safe fallback
-    if PvPTooltip.Config and PvPTooltip.Config.GameModes then
-        gameModes = PvPTooltip.Config.GameModes
-    end
-    
-    for _, gameMode in ipairs(gameModes) do
-        local success, _ = pcall(function()
-            local entries = getBracketEntries(brackets[gameMode])
-            if #entries == 0 then
-                self:AddRatingLine(tooltip, gameMode, 0)
-                return
-            end
-            for _, entry in ipairs(entries) do
-                local label = self:GetEntryLabel(gameMode, entry, currentSpec)
-                self:AddRatingLine(tooltip, gameMode, entry.currentRating or 0, label)
-            end
+    local header = (PvPTooltip.Config and PvPTooltip.Config.Tooltip
+        and PvPTooltip.Config.Tooltip.currentRatingTitle) or "Current Rating"
+    return self:RenderSection(tooltip, brackets, currentSpec, header,
+        function(entry) return entry.currentRating or 0 end,
+        function(t, gm, entry, label)
+            self:AddRatingLine(t, gm, (entry and entry.currentRating) or 0, label)
         end)
-
-        if not success then
-            PvPTooltip:Debug("Error adding rating line for game mode: " .. tostring(gameMode))
-            -- Continue with other game modes instead of failing completely
-        end
-    end
-
-    return true
 end
 
--- Create character experience (personal best) display section with error handling (Requirement 3.1)
+-- Create character experience (personal best) display section (Requirement 3.1)
 function TooltipRenderer:FormatExperienceSection(tooltip, brackets, currentSpec)
-    if not tooltip then
-        return false
-    end
-    
-    -- Graceful degradation for missing brackets data
-    if not brackets or type(brackets) ~= "table" then
-        PvPTooltip:Debug("No brackets data available for experience section - graceful degradation")
-        return false
-    end
-    
-    -- Add section header with error protection (Requirement 6.2)
-    local success, _ = pcall(function()
-        local headerText = "Character Experience" -- Safe fallback
-        if PvPTooltip.Config and PvPTooltip.Config.Tooltip and PvPTooltip.Config.Tooltip.experienceTitle then
-            headerText = PvPTooltip.Config.Tooltip.experienceTitle
-        end
-        
-        local coloredHeader = headerText
-        if PvPTooltip.ColorUtils and PvPTooltip.ColorUtils.FormatSubsectionHeader then
-            local success, result = pcall(function()
-                return PvPTooltip.ColorUtils:FormatSubsectionHeader(headerText)
-            end)
-            if success and result then
-                coloredHeader = result
-            else
-                coloredHeader = "|cFFFFD035" .. headerText .. "|r" -- Fallback coloring
-            end
-        else
-            coloredHeader = "|cFFFFD035" .. headerText .. "|r" -- Fallback coloring
-        end
-        
-        tooltip:AddLine(coloredHeader)
-    end)
-    
-    if not success then
-        PvPTooltip:Debug("Error adding experience section header")
-        return false
-    end
-    
-    -- Add personal best entries for each game mode with error protection
-    local gameModes = {"2v2", "3v3", "shuffle", "rbg", "blitz"} -- Safe fallback
-    if PvPTooltip.Config and PvPTooltip.Config.GameModes then
-        gameModes = PvPTooltip.Config.GameModes
-    end
-    
-    for _, gameMode in ipairs(gameModes) do
-        local success, _ = pcall(function()
-            local entries = getBracketEntries(brackets[gameMode])
-            if #entries == 0 then
-                self:AddRatingLine(tooltip, gameMode, 0)
-                return
-            end
-            for _, entry in ipairs(entries) do
-                local label = self:GetEntryLabel(gameMode, entry, currentSpec)
-                self:AddRatingLine(tooltip, gameMode, entry.personalBest or 0, label)
-            end
+    local header = (PvPTooltip.Config and PvPTooltip.Config.Tooltip
+        and PvPTooltip.Config.Tooltip.experienceTitle) or "Character Experience"
+    return self:RenderSection(tooltip, brackets, currentSpec, header,
+        function(entry) return entry.personalBest or 0 end,
+        function(t, gm, entry, label)
+            self:AddRatingLine(t, gm, (entry and entry.personalBest) or 0, label)
         end)
-
-        if not success then
-            PvPTooltip:Debug("Error adding experience line for game mode: " .. tostring(gameMode))
-            -- Continue with other game modes instead of failing completely
-        end
-    end
-
-    return true
 end
 
--- Create current season statistics display section with error handling (Requirement 4.1)
+-- Create current season statistics display section (Requirement 4.1)
 function TooltipRenderer:FormatSeasonSection(tooltip, brackets, currentSpec)
-    if not tooltip then
-        return false
-    end
-    
-    -- Graceful degradation for missing brackets data
-    if not brackets or type(brackets) ~= "table" then
-        PvPTooltip:Debug("No brackets data available for season section - graceful degradation")
-        return false
-    end
-    
-    -- Add section header with error protection (Requirement 6.2)
-    local success, _ = pcall(function()
-        local headerText = "Current Season" -- Safe fallback
-        if PvPTooltip.Config and PvPTooltip.Config.Tooltip and PvPTooltip.Config.Tooltip.seasonTitle then
-            headerText = PvPTooltip.Config.Tooltip.seasonTitle
-        end
-        
-        local coloredHeader = headerText
-        if PvPTooltip.ColorUtils and PvPTooltip.ColorUtils.FormatSubsectionHeader then
-            local success, result = pcall(function()
-                return PvPTooltip.ColorUtils:FormatSubsectionHeader(headerText)
-            end)
-            if success and result then
-                coloredHeader = result
-            else
-                coloredHeader = "|cFFFFD035" .. headerText .. "|r" -- Fallback coloring
-            end
-        else
-            coloredHeader = "|cFFFFD035" .. headerText .. "|r" -- Fallback coloring
-        end
-        
-        tooltip:AddLine(coloredHeader)
-    end)
-    
-    if not success then
-        PvPTooltip:Debug("Error adding season section header")
-        return false
-    end
-    
-    -- Add season statistics for each game mode with error protection
-    local gameModes = {"2v2", "3v3", "shuffle", "rbg", "blitz"} -- Safe fallback
-    if PvPTooltip.Config and PvPTooltip.Config.GameModes then
-        gameModes = PvPTooltip.Config.GameModes
-    end
-    
-    for _, gameMode in ipairs(gameModes) do
-        local success, _ = pcall(function()
-            local entries = getBracketEntries(brackets[gameMode])
-            if #entries == 0 then
-                self:AddSeasonLine(tooltip, gameMode, 0, 0)
-                return
-            end
-            for _, entry in ipairs(entries) do
-                local label = self:GetEntryLabel(gameMode, entry, currentSpec)
-                self:AddSeasonLine(tooltip, gameMode, entry.playedTotal or 0, entry.winRate or 0, label)
-            end
+    local header = (PvPTooltip.Config and PvPTooltip.Config.Tooltip
+        and PvPTooltip.Config.Tooltip.seasonTitle) or "Current Season"
+    return self:RenderSection(tooltip, brackets, currentSpec, header,
+        function(entry) return entry.playedTotal or 0 end,
+        function(t, gm, entry, label)
+            self:AddSeasonLine(t, gm, (entry and entry.playedTotal) or 0,
+                (entry and entry.winRate) or 0, label)
         end)
-
-        if not success then
-            PvPTooltip:Debug("Error adding season line for game mode: " .. tostring(gameMode))
-            -- Continue with other game modes instead of failing completely
-        end
-    end
-
-    return true
 end
 
 -- Build the left-column label for a per-spec bracket entry (shuffle/blitz). Returns

@@ -47,6 +47,22 @@ function PvPTooltip:Initialize()
             PvPTooltipDB.initialized = true
             self:Print("First time setup completed")
         end
+
+        -- Display settings (separate block so existing users get them on upgrade).
+        if not PvPTooltipDB.settings then
+            PvPTooltipDB.settings = {
+                modifier = "always",        -- "always" | "shift" | "ctrl" | "alt"
+                showRating = true,
+                showExperience = true,
+                showSeason = true,
+                brackets = {
+                    ["2v2"] = true, ["3v3"] = true, ["shuffle"] = true,
+                    ["rbg"] = true, ["blitz"] = true,
+                },
+                showAllSpecs = true,
+                hideEmpty = false,
+            }
+        end
         
         -- Initialize error handler first for comprehensive error tracking
         if self.ErrorHandler and self.ErrorHandler.Initialize then
@@ -103,6 +119,13 @@ function PvPTooltip:Initialize()
             local success, result = pcall(self.TooltipRenderer.Initialize, self.TooltipRenderer)
             if not success then
                 self:Error("Failed to initialize TooltipRenderer module: " .. tostring(result))
+            end
+        end
+
+        if self.SettingsPanel and self.SettingsPanel.Initialize then
+            local success, result = pcall(self.SettingsPanel.Initialize, self.SettingsPanel)
+            if not success then
+                self:Error("Failed to initialize SettingsPanel module: " .. tostring(result))
             end
         end
         
@@ -190,7 +213,13 @@ SLASH_PVPTOOLTIP2 = "/pvpt"
 SlashCmdList["PVPTOOLTIP"] = function(msg)
     local command = string.lower(string.trim(msg or ""))
     
-    if command == "enable" then
+    if command == "" or command == "config" or command == "options" or command == "settings" then
+        if PvPTooltip.SettingsPanel and PvPTooltip.SettingsPanel.Open then
+            PvPTooltip.SettingsPanel:Open()
+        else
+            PvPTooltip:Print("Settings panel unavailable")
+        end
+    elseif command == "enable" then
         PvPTooltip:SetEnabled(true)
     elseif command == "disable" then
         PvPTooltip:SetEnabled(false)
@@ -351,6 +380,7 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("Addon forced to ready state")
     else
         PvPTooltip:Print("Commands:")
+        PvPTooltip:Print("  /pvptooltip config - Open settings panel")
         PvPTooltip:Print("  /pvptooltip enable - Enable the addon")
         PvPTooltip:Print("  /pvptooltip disable - Disable the addon")
         PvPTooltip:Print("  /pvptooltip debug - Toggle debug mode")

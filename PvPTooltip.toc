@@ -33,6 +33,7 @@ src\Data\PlayerLookup.lua
 # UI components
 src\UI\ColorUtils.lua
 src\UI\TooltipRenderer.lua
+src\UI\SettingsPanel.lua
 
 # Performance monitoring and optimization
 src\Core\PerformanceMonitor.lua

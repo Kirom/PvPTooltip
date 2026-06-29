@@ -47,7 +47,29 @@ function EventManager:OnUnitTooltip(tooltip)
     if not ok or not isReady then
         return
     end
+
+    -- Modifier gate: optionally show PvP info only while a key is held.
+    local mod = (PvPTooltipDB and PvPTooltipDB.settings and PvPTooltipDB.settings.modifier) or "always"
+    if (mod == "shift" and not IsShiftKeyDown())
+        or (mod == "ctrl" and not IsControlKeyDown())
+        or (mod == "alt" and not IsAltKeyDown()) then
+        return
+    end
+
     self:ProcessTooltipUpdate(tooltip, GetTime())
+end
+
+-- Re-render the tooltip currently under the cursor so settings changes preview
+-- live. SetUnit rebuilds the tooltip, which re-fires our post-call hook (no
+-- duplicate lines). No-op when no unit tooltip is shown.
+function EventManager:RefreshActiveTooltip()
+    if not GameTooltip or not GameTooltip:IsShown() then
+        return
+    end
+    local _, unit = GameTooltip:GetUnit()
+    if unit then
+        GameTooltip:SetUnit(unit)
+    end
 end
 
 -- Process the tooltip update with error handling and performance tracking.
