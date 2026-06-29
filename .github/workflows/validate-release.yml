@@ -72,21 +72,6 @@ jobs:
           
           echo "✅ Release notes content validation passed"
 
-      - name: Validate TOC version consistency
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          VERSION_CLEAN="${VERSION#v}"
-          
-          # Check if TOC version matches
-          TOC_VERSION=$(grep "^## Version:" PvPTooltip.toc | cut -d: -f2 | tr -d ' ')
-          
-          if [ "$TOC_VERSION" != "$VERSION_CLEAN" ]; then
-            echo "::error::TOC version ($TOC_VERSION) does not match release version ($VERSION_CLEAN)"
-            exit 1
-          fi
-          
-          echo "✅ TOC version matches release version: $VERSION_CLEAN"
-
       - name: Validate CHANGELOG.md format
         run: |
           if [ ! -f "CHANGELOG.md" ]; then
@@ -168,7 +153,6 @@ jobs:
           echo "🎉 Release validation completed successfully for version ${VERSION}"
           echo ""
           echo "✅ Release notes exist and have content"
-          echo "✅ TOC version is consistent"
           echo "✅ CHANGELOG.md format is valid"
           echo "✅ Lua syntax is correct"
           echo "✅ Package structure is valid"

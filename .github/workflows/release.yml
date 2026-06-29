@@ -146,22 +146,6 @@ jobs:
             exit 1
           fi
       
-      - name: Update .toc version
-        run: |
-          VERSION_CLEAN="${{ steps.version.outputs.version_clean }}"
-          echo "Updating TOC version to ${VERSION_CLEAN}"
-          
-          # Update version in TOC file
-          sed -i "s/^## Version: .*/## Version: ${VERSION_CLEAN}/" PvPTooltip.toc
-          
-          # Verify the update was successful
-          if grep -q "^## Version: ${VERSION_CLEAN}" PvPTooltip.toc; then
-            echo "✅ TOC version updated successfully to ${VERSION_CLEAN}"
-          else
-            echo "::error::Failed to update TOC version"
-            exit 1
-          fi
-      
       - name: Extract release notes for GitHub release
         id: release_notes
         run: |
@@ -184,19 +168,6 @@ jobs:
             echo "⚠️ Using default release notes"
           fi
       
-      - name: Commit updated files
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add CHANGELOG.md PvPTooltip.toc
-          
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update CHANGELOG.md and version for release ${{ steps.version.outputs.version }}"
-            echo "✅ Files committed successfully"
-          fi
-      
       - name: Package and release
         uses: BigWigsMods/packager@v2
         env:
@@ -208,7 +179,8 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          NOTES=$(head -c 1500 release_notes.txt)
+          # Drop the Discord link from the embed — readers are already in Discord.
+          NOTES=$(sed 's/\[Discord\]([^)]*) · //g' release_notes.txt | head -c 1500)
           REPO="${{ github.repository }}"
           jq -n \
             --arg title "PvPTooltip ${VERSION} released" \

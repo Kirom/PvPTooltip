@@ -1,7 +1,7 @@
 ## Interface: 120007
 ## Title: PvP Tooltip
 ## Notes: Displays comprehensive PvP information in player tooltips including current ratings, personal bests, and season statistics for 2v2, 3v3, shuffle, RBG, and Blitz.
-## Version: 1.0.0
+## Version: @project-version@
 ## Author: Kirom
 ## SavedVariables: PvPTooltipDB
 ## DefaultState: enabled

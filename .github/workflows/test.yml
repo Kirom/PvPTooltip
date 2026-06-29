@@ -77,18 +77,3 @@ jobs:
           unzip -l test-package.zip
 
           echo "OK: Package creation test passed"
-
-      - name: Validate version consistency
-        run: |
-          echo "Checking version consistency..."
-
-          # Extract version from TOC
-          TOC_VERSION=$(grep "^## Version:" PvPTooltip.toc | cut -d: -f2 | tr -d ' ')
-          echo "TOC Version: $TOC_VERSION"
-
-          # Check if CHANGELOG mentions this version
-          if grep -q "## \[$TOC_VERSION\]" CHANGELOG.md; then
-            echo "OK: Version $TOC_VERSION found in CHANGELOG"
-          else
-            echo "Note: Version $TOC_VERSION not yet in CHANGELOG (may be in Unreleased)"
-          fi
