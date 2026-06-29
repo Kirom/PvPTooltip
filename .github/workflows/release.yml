@@ -201,3 +201,28 @@ jobs:
         uses: BigWigsMods/packager@v2
         env:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Announce on Discord
+        if: success() && env.DISCORD_WEBHOOK != ''
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          NOTES=$(head -c 1500 release_notes.txt)
+          REPO="${{ github.repository }}"
+          jq -n \
+            --arg title "PvPTooltip ${VERSION} released" \
+            --arg desc "$NOTES" \
+            --arg url "https://github.com/${REPO}/releases/tag/${VERSION}" \
+            '{
+              username: "PvPTooltip",
+              embeds: [{
+                title: $title,
+                description: $desc,
+                url: $url,
+                color: 3447003,
+                footer: { text: "Available on CurseForge & Wago" }
+              }]
+            }' > payload.json
+          curl -fsS -H "Content-Type: application/json" \
+            -d @payload.json "$DISCORD_WEBHOOK"
