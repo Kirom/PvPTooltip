@@ -750,5 +750,96 @@ function PlayerLookup:GetLookupStats()
     }
 end
 
+-- Split a "Name-Realm" string into name + realm. Realm falls back to realmHint,
+-- then to the viewer's own realm. Mirrors the unit-lookup name handling but for
+-- surfaces (LFG/Guild/Friends) that identify a player by string, not unitID.
+function PlayerLookup:SplitNameRealm(fullName, realmHint)
+    if type(fullName) ~= "string" or fullName == "" then
+        return nil, nil
+    end
+    local name, realm = fullName, nil
+    if string.find(fullName, "-", 1, true) then
+        name, realm = strsplit("-", fullName, 2)
+    end
+    if not realm or realm == "" then
+        if type(realmHint) == "string" and realmHint ~= "" then
+            realm = realmHint
+        else
+            local ok, own = pcall(GetNormalizedRealmName)
+            realm = (ok and own and own ~= "" and own) or GetRealmName()
+        end
+    end
+    if not name or name == "" or not realm or realm == "" then
+        return nil, nil
+    end
+    return name, realm
+end
+
+-- Name-based lookup parallel to FindPlayerData(unitID). Used by LFG/Guild/Friends
+-- surfaces. `name` may be "Name-Realm"; `realm` is an optional hint. WoW is
+-- region-locked, so region resolves from the realm name (no GUID needed).
+function PlayerLookup:FindPlayerDataByName(name, realm)
+    local cleanName, cleanRealm = self:SplitNameRealm(name, realm)
+    if not cleanName or not cleanRealm then
+        PvPTooltip:Debug("FindPlayerDataByName: unresolved name/realm from " .. tostring(name))
+        return nil
+    end
+
+    local cacheKey = self:GenerateCacheKey(cleanName, cleanRealm)
+    if cacheKey then
+        local cachedData = self:GetFromCache(cacheKey)
+        if cachedData then
+            return cachedData
+        end
+    end
+
+    local region = nil
+    if PvPTooltip.RealmResolver and PvPTooltip.RealmResolver.GetRegionForRealm then
+        local ok, result = pcall(function()
+            return PvPTooltip.RealmResolver:GetRegionForRealm(cleanRealm)
+        end)
+        if ok then
+            region = result
+        end
+    end
+    if not region then
+        PvPTooltip:Debug("FindPlayerDataByName: no region for realm " .. tostring(cleanRealm))
+        return nil
+    end
+
+    local ok, playerData = pcall(function()
+        return self:EnhancedLookup(cleanName, cleanRealm, region)
+    end)
+    if not ok then
+        PvPTooltip:Debug("FindPlayerDataByName: lookup error " .. tostring(playerData))
+        playerData = nil
+    end
+
+    if cacheKey then
+        pcall(function()
+            self:AddToCache(cacheKey, playerData)
+        end)
+    end
+    return playerData
+end
+
+-- In-game self-check for the name-based path (no local Lua runner exists).
+-- Run in WoW: /run PvPTooltip.PlayerLookup:TestLookupByName()
+function PlayerLookup:TestLookupByName()
+    local n, r = self:SplitNameRealm("Foo-Aerie Peak")
+    assert(n == "Foo", "split name failed: " .. tostring(n))
+    assert(r == "Aerie Peak", "split realm failed: " .. tostring(r))
+
+    local n2, r2 = self:SplitNameRealm("Bar")
+    assert(n2 == "Bar", "bare name failed: " .. tostring(n2))
+    assert(r2 and r2 ~= "", "bare-name realm default failed: " .. tostring(r2))
+
+    local n3 = self:SplitNameRealm("")
+    assert(n3 == nil, "empty name should be nil")
+
+    PvPTooltip:Print("TestLookupByName OK (own realm = " .. tostring(r2) .. ")")
+    return true
+end
+
 -- Return the module for proper loading
 return PlayerLookup
