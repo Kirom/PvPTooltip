@@ -1,2 +1,5 @@
 # Downloaded lint binary (not versioned)
 luacheck.exe
+
+# IDE files
+.idea
