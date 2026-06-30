@@ -1,15 +1,11 @@
 -- PvPTooltip Surface Hooks
--- Adds the PvP block to tooltips beyond the unit tooltip: Group Finder (LFG),
--- Guild/Communities member lists, and the Friends list. Each surface is a thin
--- provider that extracts a player name and delegates to EventManager. All hooks
--- are pcall-wrapped so a failure never breaks Blizzard's native tooltip.
+-- Shows the PvP block on Group Finder, Guild/Communities and Friends tooltips.
 
 local SurfaceHooks = {}
 PvPTooltip.SurfaceHooks = SurfaceHooks
 
 local initialized = false
 
--- Append model: the surface already shows a native tooltip; add our block to it.
 local function appendByName(tooltip, fullName)
     if not tooltip or not fullName then
         return
@@ -19,9 +15,6 @@ local function appendByName(tooltip, fullName)
     end)
 end
 
--- Owned model: the hovered row has no native player tooltip. Anchor a fresh
--- GameTooltip to the row, add a name header, then our block. Returns true if
--- shown; hides the empty tooltip otherwise.
 local function showOwnedByName(anchorFrame, fullName)
     if not anchorFrame or not fullName then
         return false
@@ -45,9 +38,6 @@ local function hideOwned()
     end)
 end
 
--- Minimal ScrollBox button hooker (retail). Hooks OnEnter/OnLeave on every
--- currently-visible row and re-hooks recycled rows on update. A weak-keyed set
--- prevents double-hooking. Returns true if the scroll box was hookable.
 local function hookScrollBox(scrollBox, onEnter, onLeave)
     if not (scrollBox and scrollBox.RegisterCallback and scrollBox.GetFrames and ScrollBoxListMixin) then
         return false
@@ -71,10 +61,6 @@ local function hookScrollBox(scrollBox, onEnter, onLeave)
     return true
 end
 
--- Providers (filled in Tasks 4-6).
--- LFG: (1) group leader on a search result you are browsing - append to the
--- native search-entry tooltip; (2) applicants you receive while hosting - the
--- rows have no native tooltip, so own a fresh one.
 function SurfaceHooks:RegisterLFG()
     if type(LFGListUtil_SetSearchEntryTooltip) == "function" then
         hooksecurefunc("LFGListUtil_SetSearchEntryTooltip", function(tooltip, resultID)
@@ -93,8 +79,6 @@ function SurfaceHooks:RegisterLFG()
         return
     end
 
-    -- A member sub-button: parent applicant row carries applicantID, the button
-    -- carries memberIdx.
     local function memberOnEnter(self)
         local parent = self:GetParent()
         local applicantID = parent and parent.applicantID
@@ -107,8 +91,6 @@ function SurfaceHooks:RegisterLFG()
         end
     end
 
-    -- Applicant rows are recycled; their Members sub-buttons need hooking once
-    -- each. A row may itself be the member button (memberIdx set directly).
     local subHooked = setmetatable({}, { __mode = "k" })
     local function rowOnEnter(self)
         if self.applicantID and self.Members then
@@ -127,8 +109,6 @@ function SurfaceHooks:RegisterLFG()
     hookScrollBox(av.ScrollBox, rowOnEnter, hideOwned)
 end
 
--- Friends list: the native FriendsTooltip already shows the friend; append our
--- block to it. self.button.buttonType distinguishes WoW vs Battle.net friends.
 function SurfaceHooks:RegisterFriends()
     if not FriendsTooltip then
         return
@@ -162,9 +142,6 @@ function SurfaceHooks:RegisterFriends()
     hooksecurefunc(FriendsTooltip, "Hide", hideOwned)
 end
 
--- Guild & Communities: in retail the guild roster is the Communities member
--- list. Rows have no native player tooltip, so own a fresh one. GetMemberInfo()
--- yields name ("Name-Realm" cross-realm, "Name" otherwise) and clubType.
 function SurfaceHooks:RegisterGuild()
     local memberList = CommunitiesFrame and CommunitiesFrame.MemberList
     local scrollBox = memberList and memberList.ScrollBox
@@ -179,7 +156,6 @@ function SurfaceHooks:RegisterGuild()
         if not ok or not info or not info.name then
             return
         end
-        -- Skip non-player rows (e.g. pending-invite headers / stream rows).
         if info.clubType ~= nil
             and Enum and Enum.ClubType
             and info.clubType ~= Enum.ClubType.Guild
@@ -191,7 +167,6 @@ function SurfaceHooks:RegisterGuild()
     hookScrollBox(scrollBox, onEnter, hideOwned)
 end
 
--- Tracks which surfaces are registered, so ADDON_LOADED retries don't re-hook.
 local registered = { friends = false, lfg = false, guild = false }
 
 local function tryRegister(self)
@@ -216,9 +191,7 @@ local function tryRegister(self)
     return registered.friends and registered.lfg and registered.guild
 end
 
--- Group Finder and Communities frames load on demand, so not every surface is
--- present at login. Register what exists now, then retry on each ADDON_LOADED
--- until all surfaces are hooked.
+-- Group Finder and Communities frames load on demand; retry on ADDON_LOADED.
 function SurfaceHooks:Initialize()
     if initialized then
         return
