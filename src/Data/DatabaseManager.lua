@@ -4,11 +4,12 @@
 --
 -- Generated DB shape (see PvP Tooltip scripts -> repositories.py):
 --   ns.pvpCharacters[region][RealmDisplayName][CharName].brackets[bracket] = {
---       CR, TotBest, SeasBest, TotG, WR, [SSSpec]
+--       CR, TotBest, SeasBest, TotG, WR, [SSSpec]   -- POSITIONAL, no field names
 --   }
 --   bracket key is one of: "2v2", "3v3", "rbg", "ss", "btz"
 --   Per-spec brackets (ss/btz) with several specs are instead an ARRAY of those
---   tables, one per specialization: brackets["ss"] = { {CR,...,SSSpec}, {...} }.
+--   arrays, one per specialization: brackets["ss"] = { {CR,...,SSSpec}, {...} }.
+--   Discriminate the two forms by data[1]: number = single, table = per-spec.
 
 local DatabaseManager = {}
 PvPTooltip.DatabaseManager = DatabaseManager
@@ -122,23 +123,25 @@ local function resolveRealmKey(region, realmName)
     return idx[normalizeRealm(realmName)]
 end
 
--- Convert a compact bracket entry to the renderer's schema.
+-- Convert a positional bracket array to the renderer's schema.
+-- Fixed slot order: {CR, TotBest, SeasBest, TotG, WR[, SSSpec]}.
 local function mapBracket(b)
     return {
-        currentRating = b.CR or 0,
-        personalBest = b.TotBest or 0,
-        seasonBest = b.SeasBest or 0,
-        playedTotal = b.TotG or 0,
-        winRate = b.WR or 0,
-        shuffleSpecId = b.SSSpec, -- only present for shuffle/blitz
+        currentRating = b[1] or 0,
+        personalBest = b[2] or 0,
+        seasonBest = b[3] or 0,
+        playedTotal = b[4] or 0,
+        winRate = b[5] or 0,
+        shuffleSpecId = b[6], -- only present for shuffle/blitz
     }
 end
 
--- A bracket value is either a single compact table {CR,...} or, for per-spec
--- brackets (shuffle/blitz with several specs), an array of them. Normalize to the
--- renderer schema, returning a single table or an array of tables to match.
+-- A bracket value is either a single positional array {CR,TotBest,...} or, for
+-- per-spec brackets (shuffle/blitz with several specs), an array of those arrays.
+-- Discriminate by data[1]: a table means the per-spec array form, a number means
+-- a single positional bracket. Normalize to the renderer schema either way.
 local function mapBracketValue(data)
-    if data[1] ~= nil then
+    if type(data[1]) == "table" then
         local specs = {}
         for i = 1, #data do
             if type(data[i]) == "table" then
