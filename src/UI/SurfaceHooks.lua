@@ -126,7 +126,41 @@ function SurfaceHooks:RegisterLFG()
 
     hookScrollBox(av.ScrollBox, rowOnEnter, hideOwned)
 end
-function SurfaceHooks:RegisterFriends() end
+
+-- Friends list: the native FriendsTooltip already shows the friend; append our
+-- block to it. self.button.buttonType distinguishes WoW vs Battle.net friends.
+function SurfaceHooks:RegisterFriends()
+    if not FriendsTooltip then
+        return
+    end
+    hooksecurefunc(FriendsTooltip, "Show", function(self)
+        local button = self.button
+        if not button then
+            return
+        end
+        local fullName
+        if button.buttonType == FRIENDS_BUTTON_TYPE_BNET then
+            local ok, info = pcall(C_BattleNet.GetFriendAccountInfo, button.id)
+            local game = ok and info and info.gameAccountInfo
+            if game and game.clientProgram == BNET_CLIENT_WOW and game.characterName then
+                if game.realmName and game.realmName ~= "" then
+                    fullName = game.characterName .. "-" .. game.realmName
+                else
+                    fullName = game.characterName
+                end
+            end
+        elseif button.buttonType == FRIENDS_BUTTON_TYPE_WOW then
+            local ok, info = pcall(C_FriendList.GetFriendInfoByIndex, button.id)
+            if ok and info and info.name then
+                fullName = info.name
+            end
+        end
+        if fullName then
+            appendByName(FriendsTooltip, fullName)
+        end
+    end)
+end
+
 function SurfaceHooks:RegisterGuild() end
 
 -- Tracks which surfaces are registered, so ADDON_LOADED retries don't re-hook.
