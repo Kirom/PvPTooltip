@@ -3,6 +3,7 @@
 ## Notes: Displays comprehensive PvP information in player tooltips including current ratings, personal bests, and season statistics for 2v2, 3v3, shuffle, RBG, and Blitz.
 ## Version: @project-version@
 ## Author: Kirom
+## IconTexture: Interface\AddOns\PvPTooltip\Media\icon.tga
 ## SavedVariables: PvPTooltipDB
 ## DefaultState: enabled
 ## X-Category: PvP
@@ -34,9 +35,6 @@ src\Data\PlayerLookup.lua
 src\UI\ColorUtils.lua
 src\UI\TooltipRenderer.lua
 src\UI\SettingsPanel.lua
-
-# Performance monitoring and optimization
-src\Core\PerformanceMonitor.lua
 
 # Event management (loaded after all modules)
 src\Core\EventManager.lua

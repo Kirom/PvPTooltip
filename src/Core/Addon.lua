@@ -77,14 +77,6 @@ function PvPTooltip:Initialize()
             end
         end
         
-        -- Initialize performance monitor early for comprehensive tracking
-        if self.PerformanceMonitor and self.PerformanceMonitor.Initialize then
-            local success, result = pcall(self.PerformanceMonitor.Initialize, self.PerformanceMonitor)
-            if not success then
-                self:Error("Failed to initialize PerformanceMonitor module: " .. tostring(result))
-            end
-        end
-        
         -- Initialize data management components with error protection
         if self.RealmResolver and self.RealmResolver.Initialize then
             local success, result = pcall(self.RealmResolver.Initialize, self.RealmResolver)
@@ -280,55 +272,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
             PvPTooltip.ErrorHandler:ResetErrorTracking()
         end
         PvPTooltip:Print("Error log cleared")
-    elseif command == "performance" or command == "perf" then
-        if PvPTooltip.PerformanceMonitor and PvPTooltip.PerformanceMonitor.GetPerformanceReport then
-            local report = PvPTooltip.PerformanceMonitor:GetPerformanceReport()
-            PvPTooltip:Print("Performance Report:")
-            PvPTooltip:Print(string.format("  Uptime: %.1f minutes", report.uptime / 60))
-            PvPTooltip:Print(string.format("  Tooltip Success Rate: %.1f%%", report.tooltip.successRate))
-            PvPTooltip:Print(string.format("  Cache Hit Rate: %.1f%%", report.database.cacheHitRate))
-            PvPTooltip:Print(string.format("  Average Response Time: %.1fms", report.tooltip.averageResponseTime))
-            PvPTooltip:Print(string.format("  Frame Rate: %.1f FPS", report.system.frameRate))
-            
-            if report.system.memoryPressure then
-                PvPTooltip:Print("  |cFFFF0000Memory Pressure Detected|r")
-            end
-        else
-            PvPTooltip:Print("Performance monitoring not available")
-        end
-    elseif command == "perfstatus" then
-        if PvPTooltip.PerformanceMonitor and PvPTooltip.PerformanceMonitor.GetPerformanceStatus then
-            local status = PvPTooltip.PerformanceMonitor:GetPerformanceStatus()
-            local statusColor = status.status == "Good" and "|cFF00FF00" or 
-                               status.status == "Fair" and "|cFFFFFF00" or "|cFFFF0000"
-            
-            PvPTooltip:Print("Performance Status: " .. statusColor .. status.status .. "|r")
-            
-            if #status.issues > 0 then
-                PvPTooltip:Print("Issues:")
-                for _, issue in ipairs(status.issues) do
-                    PvPTooltip:Print("  - " .. issue)
-                end
-            end
-            
-            if #status.recommendations > 0 then
-                PvPTooltip:Print("Recommendations:")
-                for i, rec in ipairs(status.recommendations) do
-                    if i <= 3 then -- Show only first 3 recommendations
-                        PvPTooltip:Print("  - " .. rec)
-                    end
-                end
-            end
-        else
-            PvPTooltip:Print("Performance monitoring not available")
-        end
-    elseif command == "resetperf" then
-        if PvPTooltip.PerformanceMonitor and PvPTooltip.PerformanceMonitor.ResetMetrics then
-            PvPTooltip.PerformanceMonitor:ResetMetrics()
-            PvPTooltip:Print("Performance metrics reset")
-        else
-            PvPTooltip:Print("Performance monitoring not available")
-        end
     elseif command == "demo" or command == "testtooltip" then
         PvPTooltip:Print("Creating demo tooltip...")
         
@@ -395,9 +338,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("  /pvptooltip status - Show addon status")
         PvPTooltip:Print("  /pvptooltip errors - Show recent errors")
         PvPTooltip:Print("  /pvptooltip clearerrors - Clear error log")
-        PvPTooltip:Print("  /pvptooltip performance - Show performance report")
-        PvPTooltip:Print("  /pvptooltip perfstatus - Show performance status")
-        PvPTooltip:Print("  /pvptooltip resetperf - Reset performance metrics")
         PvPTooltip:Print("  /pvptooltip force - Force addon to ready state")
         PvPTooltip:Print("  /pvptooltip demo - Test tooltip rendering with demo data")
     end

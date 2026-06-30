@@ -102,7 +102,7 @@ function PlayerLookup:FindPlayerData(unitID)
     local success, playerData = pcall(function()
         return self:EnhancedLookup(unitInfo.name, unitInfo.realm, region)
     end)
-    
+
     if not success then
         PvPTooltip:Debug("Error during enhanced lookup: " .. tostring(playerData))
         playerData = nil

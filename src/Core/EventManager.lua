@@ -132,10 +132,6 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
         PvPTooltip:Debug(string.format("Slow tooltip processing: %.2fms for unit %s",
             processingTime, tostring(unitName)))
     end
-
-    if PvPTooltip.PerformanceMonitor and PvPTooltip.PerformanceMonitor.RecordTooltipMetrics then
-        PvPTooltip.PerformanceMonitor:RecordTooltipMetrics(enhanceOk, processingTime, false)
-    end
 end
 
 -- Enhance tooltip with PvP information. Quiet graceful degradation on any failure

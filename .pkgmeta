@@ -17,7 +17,6 @@ ignore:
   - luacheck.exe
   - release_notes.txt
   - assets
-  - CLAUDE.md
   - docs
 
 manual-changelog: CHANGELOG.md

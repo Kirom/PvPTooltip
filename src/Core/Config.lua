@@ -80,11 +80,8 @@ Config.Performance = {
     memoryCleanupInterval = 600,    -- Seconds between memory cleanup cycles (10 minutes)
     memoryPressureThreshold = 0.8,  -- Memory usage threshold to trigger aggressive cleanup
     enableDataCompression = false,  -- Enable data compression (disabled by default for compatibility)
-    
-    -- Performance monitoring
-    enablePerformanceMetrics = true, -- Enable performance metrics collection
-    metricsRetentionTime = 1800,    -- How long to keep performance metrics (30 minutes)
-    slowQueryThreshold = 100        -- Milliseconds - log queries slower than this
+
+    slowQueryThreshold = 100        -- Milliseconds - log slow tooltip processing (debug only)
 }
 
 -- Error handling and graceful degradation settings
