@@ -40,3 +40,6 @@ src\Core\PerformanceMonitor.lua
 
 # Event management (loaded after all modules)
 src\Core\EventManager.lua
+
+# Surface hooks (LFG / Guild / Friends) - loaded after EventManager
+src\UI\SurfaceHooks.lua

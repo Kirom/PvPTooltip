@@ -136,7 +136,15 @@ function PvPTooltip:Initialize()
                 self:Error("Failed to initialize EventManager module: " .. tostring(result))
             end
         end
-        
+
+        -- Initialize extra-surface tooltip hooks (LFG / Guild / Friends)
+        if self.SurfaceHooks and self.SurfaceHooks.Initialize then
+            local success, result = pcall(self.SurfaceHooks.Initialize, self.SurfaceHooks)
+            if not success then
+                self:Error("Failed to initialize SurfaceHooks module: " .. tostring(result))
+            end
+        end
+
         self:Print("Addon loaded successfully (v" .. self.version .. ")")
         self:Debug("Initialization complete")
     end
