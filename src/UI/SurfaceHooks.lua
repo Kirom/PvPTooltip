@@ -161,7 +161,34 @@ function SurfaceHooks:RegisterFriends()
     end)
 end
 
-function SurfaceHooks:RegisterGuild() end
+-- Guild & Communities: in retail the guild roster is the Communities member
+-- list. Rows have no native player tooltip, so own a fresh one. GetMemberInfo()
+-- yields name ("Name-Realm" cross-realm, "Name" otherwise) and clubType.
+function SurfaceHooks:RegisterGuild()
+    local memberList = CommunitiesFrame and CommunitiesFrame.MemberList
+    local scrollBox = memberList and memberList.ScrollBox
+    if not scrollBox then
+        return
+    end
+    local function onEnter(self)
+        if type(self.GetMemberInfo) ~= "function" then
+            return
+        end
+        local ok, info = pcall(self.GetMemberInfo, self)
+        if not ok or not info or not info.name then
+            return
+        end
+        -- Skip non-player rows (e.g. pending-invite headers / stream rows).
+        if info.clubType ~= nil
+            and Enum and Enum.ClubType
+            and info.clubType ~= Enum.ClubType.Guild
+            and info.clubType ~= Enum.ClubType.Character then
+            return
+        end
+        showOwnedByName(self, info.name)
+    end
+    hookScrollBox(scrollBox, onEnter, hideOwned)
+end
 
 -- Tracks which surfaces are registered, so ADDON_LOADED retries don't re-hook.
 local registered = { friends = false, lfg = false, guild = false }
