@@ -1,154 +1,191 @@
+<div align="center">
+
+<img src="assets/icon/github-256.png" width="160" alt="PvPTooltip">
+
 # PvP Tooltip
 
-**Enhanced PvP Information for World of Warcraft Players**
+**Ranked PvP ratings, personal bests and season stats — right in the player tooltip.**
 
-PvP Tooltip is a lightweight, performance-optimized World of Warcraft addon that enriches player tooltips with comprehensive ranked PvP information. Get instant access to current ratings, personal bests, and season statistics for any player you encounter in the world, party, raid, or Group Finder.
+</div>
 
-## ✨ Features
+<div align="center">
 
-### 🎯 **Comprehensive PvP Data**
-- **Current Season Ratings** for all competitive brackets (2v2, 3v3, Shuffle, RBG, Blitz)
-- **Personal Best Ratings** showing historical peak performance  
-- **Season Statistics** including games played and win rates
-- **Multi-Region Support** for both EU and US with daily-updated databases
+[![Release](https://img.shields.io/github/v/release/Kirom/PvPTooltip)](https://github.com/Kirom/PvPTooltip/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/Kirom/PvPTooltip/release.yml?label=Build)](https://github.com/Kirom/PvPTooltip/actions)
+[![CurseForge](https://img.shields.io/badge/CurseForge-Install-orange?logo=curseforge)](https://www.curseforge.com/wow/addons/pvp-tooltip)
+[![Wago](https://img.shields.io/badge/Wago-Install-blue)](https://addons.wago.io/addons/pvp-tooltip)
 
-### 🎨 **Professional Display**
-- **Color-coded ratings** for instant skill assessment
-- **Clean, organized layout** with clear sections
-- **Intuitive color scheme** that's easy to read at a glance
-- **Zero configuration** required - install and play
+[![World of Warcraft](https://img.shields.io/badge/World%20of%20Warcraft-Midnight-0084ff?logo=battle.net)](https://worldofwarcraft.blizzard.com/)
+[![Game Version](https://img.shields.io/badge/Game%20Version-12.0.7-brightgreen)](https://github.com/Kirom/PvPTooltip)
+[![Issues](https://img.shields.io/github/issues/Kirom/PvPTooltip)](https://github.com/Kirom/PvPTooltip/issues)
 
-### 🌍 **Universal Compatibility**
-- Works in **all game contexts**: world, party, raid, Group Finder
-- **Cross-realm and cross-faction** player lookup
-- **Compatible** with popular UI addons and frameworks
-- **Minimal performance impact** with optimized data structures
+[![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289DA?logo=discord)](https://discord.gg/A5N6KEgbCc)
 
-## 📊 What You'll See
+</div>
 
-When hovering over any player, the addon adds a "PvP Tooltip info" section displaying:
+PvP Tooltip is a World of Warcraft addon that adds ranked PvP information to player tooltips. Hover over any player — in the open world, your group, or Group Finder — and instantly see their current ratings, personal bests and season stats across every competitive bracket. No clicks, no website, no setup.
 
-### Current Rating
-View current season ratings across all competitive brackets:
-- **2v2, 3v3, Shuffle, RBG, Blitz**
-- Color-coded by skill level for instant assessment
+## Features
 
-### Character Experience  
-See personal best ratings to understand historical performance:
-- **All-time peak ratings** for each bracket
-- **Experience indicators** across different PvP formats
+- **Ratings for every bracket** — 2v2, 3v3, Solo Shuffle, Rated Battlegrounds and Blitz
+- **Personal bests** — all-time peak rating per bracket
+- **Season stats** — games played and win rate for the current season
+- **Per-spec Shuffle/Blitz** — see each spec's rating, or just active spec
+- **Color-coded ratings** — read skill level at a glance
+- **In-game settings panel** — toggle sections, brackets and a show-on-modifier key, with a live tooltip preview
+- **Multi-region** — EU and US databases, refreshed frequently
+- **Cross-realm & cross-faction** lookup, everywhere a unit tooltip appears
+- **Minimal footprint** — fast lookups, no measurable performance impact
 
-### Current Season Statistics
-Check activity and performance for the current season:
-- **Games played** and **win rates** for each bracket
-- **Performance trends** and activity levels
+## What You'll See
 
-## 🎨 Color Coding System
+Hovering a player adds these sections to the tooltip:
 
-### Rating Colors
-- **0-1799**: White (Unrated/Low)
-- **1800-2099**: Green (Rival/Combatant) 
-- **2100-2399**: Blue (Challenger/Elite)
-- **2400+**: Purple (Gladiator)
+| Section | Shows |
+|---------|-------|
+| **Current Rating** | Current-season rating for each enabled bracket, color-coded |
+| **Character Experience** | All-time personal-best rating per bracket |
+| **Current Season** | Games played and win rate per bracket |
 
-### Statistics Colors
-- **Games Played**: Gold (#FFD035)
-- **Win Rate ≤50%**: Red (#FF4500) 
-- **Win Rate >50%**: Green (#57C94F)
+For Solo Shuffle and Blitz, ratings are shown **per spec**, with the hovered player's active spec highlighted.
 
-## 🚀 Installation
+### Color Coding
 
-### Automatic Installation (Recommended)
-1. **CurseForge App**: Search for "PvP Tooltip" and install
-2. **Wago App**: Search for "PvP Tooltip" and install
+**Ratings**
 
-### Manual Installation
-1. Download the latest release from [GitHub Releases](https://github.com/PvPTooltip/PvPTooltip/releases)
-2. Extract the `PvPTooltip` folder to your WoW AddOns directory:
+| Rating | Color | Tier |
+|--------|-------|------|
+| 0–1799 | White | Unrated / Low |
+| 1800–2099 | Green | Rival / Combatant |
+| 2100–2399 | Blue | Challenger / Elite |
+| 2400+ | Purple | Gladiator |
+
+**Stats** — Games played: gold · Win rate ≤50%: red · Win rate >50%: green.
+
+## Installation
+
+### Addon managers (recommended)
+
+- **CurseForge** — search **"PvP Tooltip"** and install
+- **Wago** — search **"PvP Tooltip"** and install
+- **WowUp** — installs directly from GitHub releases
+
+### Manual
+
+1. Download the latest release from [GitHub Releases](https://github.com/Kirom/PvPTooltip/releases/latest).
+2. Extract the `PvPTooltip` folder into your AddOns directory:
    - **Windows**: `World of Warcraft\_retail_\Interface\AddOns\`
-   - **Mac**: `Applications/World of Warcraft/_retail_/Interface/AddOns/`
-3. Restart World of Warcraft or reload your UI (`/reload`)
+   - **macOS**: `Applications/World of Warcraft/_retail_/Interface/AddOns/`
+3. Restart WoW or `/reload`.
+4. Confirm **PvP Tooltip** appears in your AddOns list, then hover any player.
 
-### Verification
-- Check that "PvP Tooltip" appears in your AddOns list (`/addons`)
-- Hover over any player to see the enhanced tooltip
+## Configuration
 
-## 📈 Data Freshness
+PvP Tooltip works out of the box — configuration is optional.
 
-**Important**: For the most accurate and up-to-date information:
+### Settings panel
 
-- **Update regularly** (ideally daily) to get the latest player data
-- **Database refresh**: Our databases in `src/db/` are updated frequently with current ratings and statistics
-- **Automatic updates**: Enable automatic addon updates in your addon manager for the best experience
+Open it any of these ways:
 
-The addon includes databases for:
-- `db_pvp_eu_characters.lua` - EU region player data
-- `db_pvp_us_characters.lua` - US region player data  
-- `db_realms.lua` - Realm mappings and information
-- `db_regions.lua` - Region detection and routing
+- Type `/pvpt` (or `/pvptooltip`)
+- `Esc → Options → AddOns → PvPTooltip`
 
-## 🎮 Supported Contexts
+The panel includes a **live tooltip preview** that updates as you change options:
 
-PvP Tooltip enhances tooltips in all major game situations:
+- **Show info when** — Always, or only while holding **Shift / Ctrl / Alt** (great for keeping tooltips clean)
+- **Sections** — toggle Current Rating, Character Experience, Current Season
+- **Brackets** — show/hide 2v2, 3v3, Solo Shuffle, RBG, Blitz individually
+- **Display** — show all specs vs only the hovered spec; hide brackets with no games
 
-- **World Exploration**: Hovering over players in the open world
-- **Group Content**: Party and raid member information
-- **Group Finder**: Both when searching for groups and reviewing applicants
-- **Social Features**: Guild members, friends, and other social interactions
-- **PvP Environments**: Battlegrounds, arenas, and world PvP
+### Slash commands
 
-## ⚡ Performance
+| Command | Action |
+|---------|--------|
+| `/pvpt` · `/pvpt config` | Open the settings panel |
+| `/pvpt enable` · `/pvpt disable` | Toggle the addon |
+| `/pvpt status` | Show current state |
+| `/pvpt debug` | Toggle debug logging |
 
-- **Lightweight**: Minimal memory footprint and CPU usage
-- **Optimized**: Fast lookup algorithms for instant tooltip enhancement  
-- **Efficient**: Smart caching prevents repeated database queries
-- **Non-intrusive**: Doesn't interfere with game performance or other addons
+(Additional diagnostic commands exist for troubleshooting — see `/pvpt` output.)
 
-## 🛠️ Development
+## Supported Contexts
 
-### Architecture
-- **Clean Architecture**: Modular design with clear separation of concerns
-- **Error Handling**: Comprehensive error handling and graceful degradation
-- **Testing**: Full test suite for reliability and stability
-- **Documentation**: Well-documented codebase for maintainability
+Tooltips are enhanced wherever a unit tooltip shows: open-world players, party and raid members, Group Finder listings and applicants, guild and friends lists, battlegrounds and arenas.
 
-### Contributing
-- **Issues**: Bug reports and feature requests welcome via [GitHub Issues](https://github.com/PvPTooltip/PvPTooltip/issues)
-- **Code Style**: Follow clean code principles and existing patterns
-- **Testing**: Run `scripts/run_luacheck.sh` for syntax validation
-- **Pull Requests**: Contributions are welcome and appreciated
+## Data Freshness
 
-### Building & Releases
-```bash
-# Lint code
-./scripts/run_luacheck.sh
+Player data lives in generated databases under `src/db/` and is refreshed frequently from current ranked data. For the most accurate ratings, **keep the addon updated** (enable auto-update in your addon manager).
 
-# Prepare a new release
-./scripts/prepare-release.sh v1.0.1
+| Database | Contents |
+|----------|----------|
+| `db_pvp_eu_characters.lua` | EU player ratings |
+| `db_pvp_us_characters.lua` | US player ratings |
+| `db_realms.lua` | Realm mappings |
+| `db_regions.lua` | Region detection |
 
-# The release process is automated via GitHub Actions
-# See RELEASE_PROCESS.md for detailed information
+> These files are generated externally — do not hand-edit them.
+
+## Requirements
+
+- **World of Warcraft**: Retail — Midnight (Interface `120007`)
+- **Dependencies**: none (standalone)
+- **Footprint**: a few MB, depending on database size
+
+## Project Structure
+
+```
+PvPTooltip/
+├── PvPTooltip.toc          # Metadata + load order (TOC order = dependency order)
+├── Media/                  # In-game textures (addon list icon)
+├── src/
+│   ├── Core/               # Lifecycle, config, events, errors, performance
+│   ├── Data/               # Player lookup + realm/region resolution
+│   ├── UI/                 # Tooltip rendering + settings panel
+│   └── db/                 # GENERATED rating/realm databases
+├── scripts/                # Lint + release automation
+├── ReleaseNotes/           # Per-version notes
+├── CHANGELOG.md
+└── LICENSE
 ```
 
-For detailed information about the release process, see [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
+## Development
 
-## 📋 Requirements
+```bash
+# Lint
+./luacheck.exe src/ --config .luacheckrc
 
-- **World of Warcraft**: Retail (11.2.0+)
-- **Dependencies**: None (standalone addon)
-- **Memory**: ~2-5MB depending on database size
-- **Performance**: Negligible impact on game performance
+# Prepare + ship a release (bumps notes, tags, pushes → CI publishes)
+./scripts/prepare-release.sh v1.0.1
+```
 
-## 🤝 Community & Support
+Releases are fully automated via GitHub Actions — tagging `v*` packages the addon and publishes to CurseForge and Wago, then announces in Discord. See [RELEASE_PROCESS.md](RELEASE_PROCESS.md) for the full flow.
 
-- **GitHub**: [PvPTooltip Repository](https://github.com/PvPTooltip/PvPTooltip)
-- **Issues**: Report bugs or request features via GitHub Issues
-- **Discussions**: Community discussions and support via GitHub Discussions
+## Contributing
 
-## 📄 License
+1. Fork and create a feature branch.
+2. Run `./luacheck.exe src/ --config .luacheckrc` before committing.
+3. Use [Conventional Commits](https://www.conventionalcommits.org/) (`type(scope): subject`).
+4. Open a Pull Request.
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/Kirom/PvPTooltip/issues) or the Discord.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+
+## Support & Community
+
+- **Discord** — [join the server](https://discord.gg/A5N6KEgbCc) for help, bug reports and feature ideas
+- **GitHub Issues** — [report a bug or request a feature](https://github.com/Kirom/PvPTooltip/issues)
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-**Transform your PvP experience with instant access to comprehensive player information. Install PvP Tooltip today and never wonder about another player's skill level again!**
+<div align="center">
+
+**Happy PvP hunting!** 🗡️⚔️
+
+</div>
