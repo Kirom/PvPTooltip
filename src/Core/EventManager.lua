@@ -35,6 +35,18 @@ function EventManager:RegisterTooltipEvents()
     PvPTooltip:Debug("Tooltip events registered (TooltipDataProcessor)")
 end
 
+-- Whether the optional modifier-key gate currently permits showing PvP info.
+-- Shared by the unit tooltip and the name-based surfaces.
+function EventManager:ModifierAllows()
+    local mod = (PvPTooltipDB and PvPTooltipDB.settings and PvPTooltipDB.settings.modifier) or "always"
+    if (mod == "shift" and not IsShiftKeyDown())
+        or (mod == "ctrl" and not IsControlKeyDown())
+        or (mod == "alt" and not IsAltKeyDown()) then
+        return false
+    end
+    return true
+end
+
 -- A unit tooltip's data was set. Tooltips rebuild their lines on each SetUnit,
 -- so we enhance directly.
 function EventManager:OnUnitTooltip(tooltip)
@@ -49,10 +61,7 @@ function EventManager:OnUnitTooltip(tooltip)
     end
 
     -- Modifier gate: optionally show PvP info only while a key is held.
-    local mod = (PvPTooltipDB and PvPTooltipDB.settings and PvPTooltipDB.settings.modifier) or "always"
-    if (mod == "shift" and not IsShiftKeyDown())
-        or (mod == "ctrl" and not IsControlKeyDown())
-        or (mod == "alt" and not IsAltKeyDown()) then
+    if not self:ModifierAllows() then
         return
     end
 
@@ -167,6 +176,47 @@ function EventManager:EnhanceTooltipWithPvPInfo(tooltip, unitID, currentSpec)
     if not result then
         PvPTooltip:Debug("Tooltip enhancement returned false - data may be invalid")
     end
+end
+
+-- Append the PvP block to an arbitrary tooltip for a player identified by name
+-- (not a unit). Used by LFG/Guild/Friends surfaces. Returns true iff PvP lines
+-- were added, so a caller owning a fresh tooltip can decide keep vs. hide.
+function EventManager:EnhanceTooltipByName(tooltip, fullName)
+    if not tooltip or not fullName then
+        return false
+    end
+
+    local ok, isReady = pcall(function()
+        return PvPTooltip and PvPTooltip.IsReady and PvPTooltip:IsReady()
+    end)
+    if not ok or not isReady then
+        return false
+    end
+
+    if not self:ModifierAllows() then
+        return false
+    end
+
+    if not (PvPTooltip.PlayerLookup and PvPTooltip.PlayerLookup.FindPlayerDataByName
+        and PvPTooltip.TooltipRenderer and PvPTooltip.TooltipRenderer.EnhanceTooltip) then
+        return false
+    end
+
+    local added = false
+    local enhanceOk, err = pcall(function()
+        local playerData = PvPTooltip.PlayerLookup:FindPlayerDataByName(fullName)
+        if not playerData then
+            return
+        end
+        if PvPTooltip.TooltipRenderer:EnhanceTooltip(tooltip, playerData) then
+            added = true
+            tooltip:Show()
+        end
+    end)
+    if not enhanceOk then
+        PvPTooltip:Debug("EnhanceTooltipByName error: " .. tostring(err) .. " - graceful degradation")
+    end
+    return added
 end
 
 -- Check if events are currently registered
