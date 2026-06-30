@@ -156,9 +156,10 @@ function SurfaceHooks:RegisterFriends()
             end
         end
         if fullName then
-            appendByName(FriendsTooltip, fullName)
+            showOwnedByName(FriendsTooltip, fullName)
         end
     end)
+    hooksecurefunc(FriendsTooltip, "Hide", hideOwned)
 end
 
 -- Guild & Communities: in retail the guild roster is the Communities member
@@ -200,6 +201,7 @@ local function tryRegister(self)
         end
     end
     if not registered.lfg and LFGListFrame and LFGListFrame.ApplicationViewer
+        and LFGListFrame.ApplicationViewer.ScrollBox
         and type(LFGListUtil_SetSearchEntryTooltip) == "function" then
         if pcall(function() self:RegisterLFG() end) then
             registered.lfg = true
