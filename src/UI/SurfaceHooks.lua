@@ -72,7 +72,60 @@ local function hookScrollBox(scrollBox, onEnter, onLeave)
 end
 
 -- Providers (filled in Tasks 4-6).
-function SurfaceHooks:RegisterLFG() end
+-- LFG: (1) group leader on a search result you are browsing - append to the
+-- native search-entry tooltip; (2) applicants you receive while hosting - the
+-- rows have no native tooltip, so own a fresh one.
+function SurfaceHooks:RegisterLFG()
+    if type(LFGListUtil_SetSearchEntryTooltip) == "function" then
+        hooksecurefunc("LFGListUtil_SetSearchEntryTooltip", function(tooltip, resultID)
+            if not resultID then
+                return
+            end
+            local ok, info = pcall(C_LFGList.GetSearchResultInfo, resultID)
+            if ok and info and info.leaderName then
+                appendByName(tooltip, info.leaderName)
+            end
+        end)
+    end
+
+    local av = LFGListFrame and LFGListFrame.ApplicationViewer
+    if not (av and av.ScrollBox) then
+        return
+    end
+
+    -- A member sub-button: parent applicant row carries applicantID, the button
+    -- carries memberIdx.
+    local function memberOnEnter(self)
+        local parent = self:GetParent()
+        local applicantID = parent and parent.applicantID
+        if not applicantID or not self.memberIdx then
+            return
+        end
+        local ok, fullName = pcall(C_LFGList.GetApplicantMemberInfo, applicantID, self.memberIdx)
+        if ok and fullName then
+            showOwnedByName(self, fullName)
+        end
+    end
+
+    -- Applicant rows are recycled; their Members sub-buttons need hooking once
+    -- each. A row may itself be the member button (memberIdx set directly).
+    local subHooked = setmetatable({}, { __mode = "k" })
+    local function rowOnEnter(self)
+        if self.applicantID and self.Members then
+            for _, member in pairs(self.Members) do
+                if not subHooked[member] then
+                    subHooked[member] = true
+                    member:HookScript("OnEnter", memberOnEnter)
+                    member:HookScript("OnLeave", hideOwned)
+                end
+            end
+        elseif self.memberIdx then
+            memberOnEnter(self)
+        end
+    end
+
+    hookScrollBox(av.ScrollBox, rowOnEnter, hideOwned)
+end
 function SurfaceHooks:RegisterFriends() end
 function SurfaceHooks:RegisterGuild() end
 

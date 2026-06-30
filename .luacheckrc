@@ -23,6 +23,7 @@ ignore = {
     "411", -- redefining local
     "421", -- shadowing local
     "431", -- shadowing upvalue
+    "432", -- shadowing upvalue argument
     "542", -- empty if branch
     "611", -- line contains only whitespace
     "612", -- trailing whitespace
