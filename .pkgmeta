@@ -28,7 +28,6 @@ enable-nolib-creation: no
 
 # Ship the per-region character databases as separate top-level add-ons
 # (PvPTooltip_DataEU / PvPTooltip_DataUS) so only the player's region loads.
-# Same mechanism Raider.IO uses to split its regional DBs.
 move-folders:
   PvPTooltip/src: PvPTooltip
   PvPTooltip/data/PvPTooltip_DataEU: PvPTooltip_DataEU
