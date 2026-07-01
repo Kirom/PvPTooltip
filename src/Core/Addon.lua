@@ -12,11 +12,8 @@ local playerLoggedIn = false
 
 -- Addon components will be populated by their respective modules as they load
 
--- Saved variables with error handling support
-PvPTooltipDB = PvPTooltipDB or {
-    errorLog = {},
-    errorStats = {}
-}
+-- Saved variables
+PvPTooltipDB = PvPTooltipDB or {}
 
 -- Debug and logging functions
 function PvPTooltip:Debug(message)
@@ -42,8 +39,6 @@ function PvPTooltip:Initialize()
         if not PvPTooltipDB.initialized then
             PvPTooltipDB.debug = false
             PvPTooltipDB.enabled = true
-            PvPTooltipDB.errorLog = {}
-            PvPTooltipDB.errorStats = {}
             PvPTooltipDB.initialized = true
             self:Print("First time setup completed")
         end
@@ -62,11 +57,6 @@ function PvPTooltip:Initialize()
                 showAllSpecs = true,
                 hideEmpty = false,
             }
-        end
-        
-        -- Initialize error handler first for comprehensive error tracking
-        if self.ErrorHandler and self.ErrorHandler.Initialize then
-            self.ErrorHandler:Initialize()
         end
         
         -- Initialize core components in proper order with error protection
@@ -230,48 +220,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("Status: " .. (PvPTooltipDB.enabled and "Enabled" or "Disabled"))
         PvPTooltip:Print("Debug: " .. (PvPTooltipDB.debug and "On" or "Off"))
         PvPTooltip:Print("Ready: " .. (PvPTooltip:IsReady() and "Yes" or "No"))
-        
-        -- Show error statistics if available
-        if PvPTooltip.ErrorHandler and PvPTooltip.ErrorHandler.GetErrorStats then
-            local errorStats = PvPTooltip.ErrorHandler:GetErrorStats()
-            local hasErrors = false
-            for context, stats in pairs(errorStats) do
-                if stats.count > 0 then
-                    hasErrors = true
-                    break
-                end
-            end
-            
-            if hasErrors then
-                PvPTooltip:Print("Error Statistics:")
-                for context, stats in pairs(errorStats) do
-                    if stats.count > 0 then
-                        PvPTooltip:Print(string.format("  %s: %d errors%s", 
-                            context, stats.count, stats.suppressed and " (suppressed)" or ""))
-                    end
-                end
-            else
-                PvPTooltip:Print("No errors recorded")
-            end
-        end
-    elseif command == "errors" then
-        if PvPTooltipDB.errorLog and #PvPTooltipDB.errorLog > 0 then
-            PvPTooltip:Print("Recent errors (last 10):")
-            local startIdx = math.max(1, #PvPTooltipDB.errorLog - 9)
-            for i = startIdx, #PvPTooltipDB.errorLog do
-                local error = PvPTooltipDB.errorLog[i]
-                PvPTooltip:Print(string.format("  [%s] %s: %s", 
-                    error.time or "unknown", error.context or "unknown", error.error or "unknown"))
-            end
-        else
-            PvPTooltip:Print("No errors in log")
-        end
-    elseif command == "clearerrors" then
-        PvPTooltipDB.errorLog = {}
-        if PvPTooltip.ErrorHandler and PvPTooltip.ErrorHandler.ResetErrorTracking then
-            PvPTooltip.ErrorHandler:ResetErrorTracking()
-        end
-        PvPTooltip:Print("Error log cleared")
     elseif command == "demo" or command == "testtooltip" then
         PvPTooltip:Print("Creating demo tooltip...")
         
@@ -336,8 +284,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("  /pvptooltip disable - Disable the addon")
         PvPTooltip:Print("  /pvptooltip debug - Toggle debug mode")
         PvPTooltip:Print("  /pvptooltip status - Show addon status")
-        PvPTooltip:Print("  /pvptooltip errors - Show recent errors")
-        PvPTooltip:Print("  /pvptooltip clearerrors - Clear error log")
         PvPTooltip:Print("  /pvptooltip force - Force addon to ready state")
         PvPTooltip:Print("  /pvptooltip demo - Test tooltip rendering with demo data")
     end

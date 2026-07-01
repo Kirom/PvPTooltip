@@ -244,35 +244,6 @@ function RealmResolver:IsValidRealm(realmIdentifier)
     return realmInfo and realmInfo.normalizedName ~= nil
 end
 
--- Clear the normalization cache (useful for testing or memory management)
-function RealmResolver:ClearCache()
-    normalizedRealmCache = {}
-end
-
--- Get statistics about cached entries (for debugging)
-function RealmResolver:GetCacheStats()
-    local count = 0
-    for _ in pairs(normalizedRealmCache) do
-        count = count + 1
-    end
-    
-    return {
-        cachedEntries = count,
-        totalRealms = self:_CountTotalRealms()
-    }
-end
-
--- Internal method to count total realms in database
-function RealmResolver:_CountTotalRealms()
-    local count = 0
-    if PvPTooltip.realmSlugs then
-        for _ in pairs(PvPTooltip.realmSlugs) do
-            count = count + 1
-        end
-    end
-    return count
-end
-
 -- Check if RealmResolver is ready to use
 function RealmResolver:IsReady()
     -- Always return true for now - data will be loaded on demand

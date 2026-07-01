@@ -61,46 +61,11 @@ Config.DatabasePaths = {
 
 -- Performance and behavior settings
 Config.Performance = {
-    tooltipDebounceMs = 50,         -- Minimum time between tooltip updates
-    tooltipSpamThreshold = 5,       -- Maximum tooltip updates per second before throttling
-    maxCacheSize = 10000,           -- Maximum cached player entries
-    cacheCleanupInterval = 300,     -- Seconds between cache cleanup
-    cacheMaxAge = 3600,             -- Maximum age of cached entries in seconds (1 hour)
-    cacheAccessThreshold = 10,      -- Minimum access count to keep entry during cleanup
-    maxErrorsPerMinute = 10,        -- Maximum errors logged per minute per context
-    errorSuppressionTime = 60,      -- Seconds to suppress errors after rate limit
-    
-    -- Database lookup optimizations
-    enableLookupCache = true,       -- Enable fast lookup cache for recent queries
-    lookupCacheSize = 1000,         -- Size of fast lookup cache
-    lookupCacheMaxAge = 300,        -- Maximum age of lookup cache entries (5 minutes)
-    
-    -- Memory management settings
-    enableMemoryOptimization = true, -- Enable memory optimization features
-    memoryCleanupInterval = 600,    -- Seconds between memory cleanup cycles (10 minutes)
-    memoryPressureThreshold = 0.8,  -- Memory usage threshold to trigger aggressive cleanup
-    enableDataCompression = false,  -- Enable data compression (disabled by default for compatibility)
-
     slowQueryThreshold = 100        -- Milliseconds - log slow tooltip processing (debug only)
-}
-
--- Error handling and graceful degradation settings
-Config.ErrorHandling = {
-    enableErrorLogging = true,      -- Enable error logging to saved variables
-    maxErrorLogEntries = 100,       -- Maximum error log entries to keep
-    enableGracefulDegradation = true, -- Enable graceful degradation on errors
-    enableCorruptionDetection = true, -- Enable database corruption detection
-    maxCorruptionRate = 0.5,        -- Maximum acceptable corruption rate (50%)
-    enableMemoryMonitoring = false, -- Enable memory usage monitoring
-    memoryThresholdMB = 50          -- Memory usage threshold in MB
 }
 
 -- Tooltip formatting settings
 Config.Tooltip = {
-    maxLineLength = 40,             -- Maximum characters per line
-    indentSpaces = 2,               -- Spaces for indentation
-    sectionSpacing = 1,             -- Empty lines between sections
-    
     -- Section titles (Requirements 6.1, 6.2)
     mainTitle = "PvP Tooltip info:",
     currentRatingTitle = "Current Rating",
@@ -154,59 +119,10 @@ function Config:SetupDynamicConfig()
     PvPTooltip:Debug("Dynamic configuration setup complete")
 end
 
--- Get color for a specific rating value
-function Config:GetRatingColor(rating)
-    if not rating or rating < 1800 then
-        return self.Colors.ratingColors[0]
-    elseif rating < 2100 then
-        return self.Colors.ratingColors[1800]
-    elseif rating < 2400 then
-        return self.Colors.ratingColors[2100]
-    else
-        return self.Colors.ratingColors[2400]
-    end
-end
-
--- Get color for win rate percentage
-function Config:GetWinRateColor(winRate)
-    if not winRate or winRate <= 50 then
-        return self.Colors.winRateColors.low
-    else
-        return self.Colors.winRateColors.high
-    end
-end
-
 -- Get display name for a game mode
 function Config:GetDisplayName(gameMode)
     return self.DisplayNames[gameMode] or gameMode
 end
-
--- Check if a game mode is valid
-function Config:IsValidGameMode(gameMode)
-    for _, mode in ipairs(self.GameModes) do
-        if mode == gameMode then
-            return true
-        end
-    end
-    return false
-end
-
--- Format win rate display according to requirement 4.5: "{playedTotal} ({winRate}% won)"
-function Config:FormatWinRateDisplay(playedTotal, winRate)
-    if not playedTotal or not winRate then
-        return "0 (0% won)"
-    end
-    return string.format("%d (%.0f%% won)", playedTotal, winRate)
-end
-
--- Get formatted color string for WoW tooltip display
-function Config:GetColoredText(text, colorHex)
-    if not colorHex then
-        return text
-    end
-    return string.format("|cff%s%s|r", colorHex, text)
-end
-
 
 -- Return the module for proper loading
 return Config

@@ -23,7 +23,6 @@ src\Core\Addon.lua
 
 # Core configuration and utilities
 src\Core\Config.lua
-src\Core\ErrorHandler.lua
 src\Core\DatabaseBridge.lua
 
 # Data management layer

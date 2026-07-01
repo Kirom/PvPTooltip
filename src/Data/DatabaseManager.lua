@@ -231,31 +231,5 @@ function DatabaseManager:SearchPlayers(partialName, region, maxResults)
     return results
 end
 
--- Get cache statistics (counts entries in the loaded DB).
-function DatabaseManager:GetCacheStats()
-    local euEntries, usEntries = 0, 0
-    if databasesReady then
-        for region, regionData in pairs(PvPTooltip.pvpCharacters) do
-            local count = 0
-            for _, realmData in pairs(regionData) do
-                for _ in pairs(realmData) do
-                    count = count + 1
-                end
-            end
-            if region == "eu" then
-                euEntries = count
-            elseif region == "us" then
-                usEntries = count
-            end
-        end
-    end
-    return {
-        totalEntries = euEntries + usEntries,
-        euEntries = euEntries,
-        usEntries = usEntries,
-        loaded = databasesReady,
-    }
-end
-
 -- Return the module for proper loading
 return DatabaseManager
