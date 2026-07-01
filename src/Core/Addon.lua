@@ -220,56 +220,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("Status: " .. (PvPTooltipDB.enabled and "Enabled" or "Disabled"))
         PvPTooltip:Print("Debug: " .. (PvPTooltipDB.debug and "On" or "Off"))
         PvPTooltip:Print("Ready: " .. (PvPTooltip:IsReady() and "Yes" or "No"))
-    elseif command == "demo" or command == "testtooltip" then
-        PvPTooltip:Print("Creating demo tooltip...")
-        
-        -- Create demo player data
-        local demoData = {
-            name = "DemoPlayer",
-            realm = "demo-realm",
-            region = "eu",
-            brackets = {
-                ["2v2"] = {
-                    currentRating = 2100,
-                    personalBest = 2300,
-                    playedTotal = 75,
-                    winRate = 64.0
-                },
-                ["3v3"] = {
-                    currentRating = 1950,
-                    personalBest = 2150,
-                    playedTotal = 45,
-                    winRate = 58.0
-                },
-                ["shuffle"] = {
-                    currentRating = 2250,
-                    personalBest = 2400,
-                    playedTotal = 120,
-                    winRate = 67.0
-                }
-            }
-        }
-        
-        -- Test tooltip rendering
-        if PvPTooltip.TooltipRenderer then
-            local mockTooltip = {
-                lines = {},
-                AddLine = function(self, text, r, g, b)
-                    table.insert(self.lines, text or "")
-                    print(text or "")
-                end
-            }
-            
-            local result = PvPTooltip.TooltipRenderer:EnhanceTooltip(mockTooltip, demoData)
-            if result then
-                PvPTooltip:Print("Demo tooltip created successfully!")
-                PvPTooltip:Print("Lines added: " .. #mockTooltip.lines)
-            else
-                PvPTooltip:Print("Demo tooltip creation failed")
-            end
-        else
-            PvPTooltip:Print("TooltipRenderer not available")
-        end
     elseif command == "force" or command == "forceready" then
         PvPTooltip:Print("Forcing addon to ready state...")
         addonLoaded = true
@@ -285,6 +235,5 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("  /pvptooltip debug - Toggle debug mode")
         PvPTooltip:Print("  /pvptooltip status - Show addon status")
         PvPTooltip:Print("  /pvptooltip force - Force addon to ready state")
-        PvPTooltip:Print("  /pvptooltip demo - Test tooltip rendering with demo data")
     end
 end

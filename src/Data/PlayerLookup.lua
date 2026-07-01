@@ -671,23 +671,5 @@ function PlayerLookup:FindPlayerDataByName(name, realm)
     return playerData
 end
 
--- In-game self-check for the name-based path (no local Lua runner exists).
--- Run in WoW: /run PvPTooltip.PlayerLookup:TestLookupByName()
-function PlayerLookup:TestLookupByName()
-    local n, r = self:SplitNameRealm("Foo-Aerie Peak")
-    assert(n == "Foo", "split name failed: " .. tostring(n))
-    assert(r == "Aerie Peak", "split realm failed: " .. tostring(r))
-
-    local n2, r2 = self:SplitNameRealm("Bar")
-    assert(n2 == "Bar", "bare name failed: " .. tostring(n2))
-    assert(r2 and r2 ~= "", "bare-name realm default failed: " .. tostring(r2))
-
-    local n3 = self:SplitNameRealm("")
-    assert(n3 == nil, "empty name should be nil")
-
-    PvPTooltip:Print("TestLookupByName OK (own realm = " .. tostring(r2) .. ")")
-    return true
-end
-
 -- Return the module for proper loading
 return PlayerLookup

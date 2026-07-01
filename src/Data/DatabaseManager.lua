@@ -197,39 +197,5 @@ function DatabaseManager:GetPlayerData(playerName, realmName, region)
     }
 end
 
--- Normalize realm name (kept for callers that expect it on the manager).
-function DatabaseManager:NormalizeRealmName(realmName)
-    return normalizeRealm(realmName)
-end
-
--- Search players by partial name (debugging helper).
-function DatabaseManager:SearchPlayers(partialName, region, maxResults)
-    if not databasesReady or not partialName then
-        return {}
-    end
-    maxResults = maxResults or 10
-    partialName = string.lower(partialName)
-    local results = {}
-    local searchRegions = region and { region } or { "eu", "us" }
-
-    for _, searchRegion in ipairs(searchRegions) do
-        local regionData = PvPTooltip.pvpCharacters[searchRegion]
-        if type(regionData) == "table" then
-            for realmKey, realmData in pairs(regionData) do
-                for playerName in pairs(realmData) do
-                    if string.find(string.lower(playerName), partialName, 1, true) then
-                        table.insert(results, { name = playerName, realm = realmKey, region = searchRegion })
-                        if #results >= maxResults then
-                            return results
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return results
-end
-
 -- Return the module for proper loading
 return DatabaseManager
