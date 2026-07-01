@@ -6,6 +6,7 @@
 ## IconTexture: Interface\AddOns\PvPTooltip\Media\icon.tga
 ## SavedVariables: PvPTooltipDB
 ## DefaultState: enabled
+## Category: PvP
 ## X-Category: PvP
 ## X-Website: https://github.com/PvPTooltip/PvPTooltip
 ## X-Curse-Project-ID: 
