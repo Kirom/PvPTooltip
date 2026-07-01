@@ -1,0 +1,10 @@
+## Interface: 120007
+## Title: PvP Tooltip Data (EU)
+## Notes: EU character rating database for PvP Tooltip. Loaded on demand per region.
+## Author: Kirom
+## Version: @project-version@
+## Dependencies: PvPTooltip
+## DefaultState: enabled
+## X-PvPTooltip-Region: eu
+
+db_pvp_eu_characters.lua

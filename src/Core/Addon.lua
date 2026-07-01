@@ -30,6 +30,37 @@ function PvPTooltip:Error(message)
     print("|cFFFF0000[PvPTooltip Error]|r " .. tostring(message))
 end
 
+-- Per-region character databases ship as separate add-ons (see PvPTooltip.toc /
+-- .pkgmeta). GetCurrentRegion: 1=US, 2=KR, 3=EU, 4=TW, 5=CN.
+local REGION_HOME_ADDON = {
+    [1] = "PvPTooltip_DataUS",
+    [3] = "PvPTooltip_DataEU",
+}
+local ALL_DATA_ADDONS = { "PvPTooltip_DataEU", "PvPTooltip_DataUS" }
+
+-- On first login, disable the data add-ons that don't match the player's region
+-- so later sessions only load the home region (halves the DB's memory). WoW is
+-- region-locked, so a foreign region's ratings are never queried. Runs once; the
+-- user's manual choices in the settings panel are respected afterwards. The
+-- disable takes effect on the next reload (this session's data is already loaded).
+function PvPTooltip:ConfigureRegionData()
+    if PvPTooltipDB.regionDataConfigured then
+        return
+    end
+    if not (C_AddOns and C_AddOns.DisableAddOn and C_AddOns.IsAddOnLoaded) then
+        return
+    end
+    local region = GetCurrentRegion and GetCurrentRegion()
+    local home = region and REGION_HOME_ADDON[region]
+    for _, addon in ipairs(ALL_DATA_ADDONS) do
+        if addon ~= home and C_AddOns.IsAddOnLoaded(addon) then
+            C_AddOns.DisableAddOn(addon)
+            self:Debug("Disabled foreign region data add-on: " .. addon)
+        end
+    end
+    PvPTooltipDB.regionDataConfigured = true
+end
+
 -- Addon initialization function
 function PvPTooltip:Initialize()
     if addonLoaded and playerLoggedIn then
@@ -59,6 +90,9 @@ function PvPTooltip:Initialize()
             }
         end
         
+        -- Keep only the player's region character DB loaded on future sessions.
+        self:ConfigureRegionData()
+
         -- Initialize core components in proper order with error protection
         if self.Config and self.Config.Initialize then
             local success, result = pcall(self.Config.Initialize, self.Config)

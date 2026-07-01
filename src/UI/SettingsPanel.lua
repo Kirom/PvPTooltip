@@ -173,6 +173,30 @@ function SettingsPanel:Initialize()
     checkbox(PvPTooltipDB, "debug", "Debug logging",
         "Print debug messages to chat.")
 
+    -- Region character databases. Each region ships as a separate add-on so only
+    -- the player's own region is loaded by default (saves memory). Toggling a
+    -- region enables/disables its add-on and reloads the UI to apply it.
+    if C_AddOns and C_AddOns.IsAddOnLoaded and Settings.CreateCheckbox then
+        header("Data (region databases)")
+        self.regionState = self.regionState or {}
+        local dataAddons = {
+            { "PvPTooltip_DataEU", "EU realm database" },
+            { "PvPTooltip_DataUS", "US realm database" },
+        }
+        for _, d in ipairs(dataAddons) do
+            local addon, label = d[1], d[2]
+            self.regionState[addon] = C_AddOns.IsAddOnLoaded(addon) and true or false
+            local setting = Settings.RegisterAddOnSetting(
+                category, "PvPTooltip_data_" .. addon, addon, self.regionState,
+                boolType, label, self.regionState[addon])
+            setting:SetValueChangedCallback(function(_, value)
+                self:ToggleRegionData(addon, value)
+            end)
+            Settings.CreateCheckbox(category, setting,
+                "Load the " .. label .. ". Changing this reloads the UI.")
+        end
+    end
+
     Settings.RegisterAddOnCategory(category)
     self.categoryID = category:GetID()
     self.category = category
@@ -238,6 +262,45 @@ function SettingsPanel:Open()
     Settings.OpenToCategory(self.categoryID)
     self:EnsureHooks()
     self:RefreshPreview()
+end
+
+-- Enable/disable a region data add-on. The change only takes effect on reload,
+-- so prompt for one when the requested state differs from what's loaded now.
+function SettingsPanel:ToggleRegionData(addon, enable)
+    if not (C_AddOns and C_AddOns.EnableAddOn and C_AddOns.DisableAddOn) then
+        return
+    end
+    local loaded = C_AddOns.IsAddOnLoaded(addon)
+    if enable then
+        C_AddOns.EnableAddOn(addon)
+    else
+        C_AddOns.DisableAddOn(addon)
+    end
+    -- Toggling a region is a deliberate override, so stop auto-managing regions.
+    PvPTooltipDB.regionDataConfigured = true
+    if (enable and not loaded) or (not enable and loaded) then
+        self:PromptReload()
+    end
+end
+
+function SettingsPanel:PromptReload()
+    if not (StaticPopupDialogs and StaticPopup_Show) then
+        PvPTooltip:Print("Reload the UI (/reload) to apply the region data change.")
+        return
+    end
+    StaticPopupDialogs["PVPTOOLTIP_RELOAD"] = StaticPopupDialogs["PVPTOOLTIP_RELOAD"] or {
+        text = "PvPTooltip: reload the UI to apply the region database change?",
+        button1 = RELOAD or "Reload",
+        button2 = CANCEL or "Cancel",
+        OnAccept = function()
+            if C_UI and C_UI.Reload then C_UI.Reload() else ReloadUI() end
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+    StaticPopup_Show("PVPTOOLTIP_RELOAD")
 end
 
 return SettingsPanel

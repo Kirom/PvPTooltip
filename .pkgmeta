@@ -26,6 +26,15 @@ license-output: LICENSE.txt
 # Enable automatic changelog generation from git tags
 enable-nolib-creation: no
 
-# Ensure proper file structure for distribution
+# Ship the per-region character databases as separate top-level add-ons
+# (PvPTooltip_DataEU / PvPTooltip_DataUS) so only the player's region loads.
+# Same mechanism Raider.IO uses to split its regional DBs.
 move-folders:
   PvPTooltip/src: PvPTooltip
+  PvPTooltip/data/PvPTooltip_DataEU: PvPTooltip_DataEU
+  PvPTooltip/data/PvPTooltip_DataUS: PvPTooltip_DataUS
+
+# Copy the large generated data files verbatim (skip @keyword@ substitution).
+plain-copy:
+  - data/PvPTooltip_DataEU/db_pvp_eu_characters.lua
+  - data/PvPTooltip_DataUS/db_pvp_us_characters.lua

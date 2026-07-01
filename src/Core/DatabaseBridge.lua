@@ -9,4 +9,10 @@ _G["PvPTooltipNamespace"] = ns
 -- Initialize empty tables for database content
 ns.realmSlugs = ns.realmSlugs or {}
 ns.regionIDs = ns.regionIDs or {}
-ns.pvpCharacters = ns.pvpCharacters or {}
+
+-- Character data is populated by the per-region data add-ons (PvPTooltip_DataEU /
+-- PvPTooltip_DataUS), which write directly to the PvPTooltip global (a separate
+-- add-on cannot reach this private `ns`). Seed the table so lookups are safe even
+-- when no region add-on is loaded (e.g. KR/TW/CN).
+PvPTooltip = PvPTooltip or {}
+PvPTooltip.pvpCharacters = PvPTooltip.pvpCharacters or {}
