@@ -3,8 +3,17 @@
 
 -- Create global addon namespace
 PvPTooltip = {}
-PvPTooltip.version = "1.0.0"
 PvPTooltip.name = "PvPTooltip"
+-- Version comes from the .toc (packager substitutes @project-version@ from the
+-- git tag). A dev checkout has the raw placeholder, so show "dev" there.
+do
+    local v = C_AddOns and C_AddOns.GetAddOnMetadata
+        and C_AddOns.GetAddOnMetadata("PvPTooltip", "Version")
+    if not v or v == "" or string.find(v, "project%-version") then
+        v = "dev"
+    end
+    PvPTooltip.version = v
+end
 
 -- Addon state tracking
 local addonLoaded = false
