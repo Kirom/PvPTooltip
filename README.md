@@ -105,8 +105,9 @@ The panel includes a **live tooltip preview** that updates as you change options
 | `/pvpt enable` · `/pvpt disable` | Toggle the addon |
 | `/pvpt status` | Show current state |
 | `/pvpt debug` | Toggle debug logging |
+| `/pvpt force` | Force addon to ready state (troubleshooting) |
 
-(Additional diagnostic commands exist for troubleshooting — see `/pvpt` output.)
+Unknown or missing arguments print this command list to chat.
 
 ## Supported Contexts
 
@@ -114,14 +115,14 @@ Tooltips are enhanced wherever a unit tooltip shows: open-world players, party a
 
 ## Data Freshness
 
-Player data lives in generated databases under `src/db/` and is refreshed frequently from current ranked data. For the most accurate ratings, **keep the addon updated** (enable auto-update in your addon manager).
+Player rating data ships as separate per-region add-ons — **PvPTooltip_DataEU** and **PvPTooltip_DataUS** — so only your region's database loads. Realm and region mapping data lives in `src/db/` and loads with the main addon. All are generated externally and refreshed frequently from current ranked data. For the most accurate ratings, **keep the addon updated** (enable auto-update in your addon manager, install all bundled add-ons).
 
-| Database | Contents |
-|----------|----------|
-| `db_pvp_eu_characters.lua` | EU player ratings |
-| `db_pvp_us_characters.lua` | US player ratings |
-| `db_realms.lua` | Realm mappings |
-| `db_regions.lua` | Region detection |
+| Database | Add-on | Contents |
+|----------|--------|----------|
+| `db_pvp_eu_characters.lua` | PvPTooltip_DataEU | EU player ratings |
+| `db_pvp_us_characters.lua` | PvPTooltip_DataUS | US player ratings |
+| `db_realms.lua` | PvPTooltip | Realm mappings |
+| `db_regions.lua` | PvPTooltip | Region detection |
 
 > These files are generated externally — do not hand-edit them.
 
@@ -129,7 +130,6 @@ Player data lives in generated databases under `src/db/` and is refreshed freque
 
 - **World of Warcraft**: Retail — Midnight (Interface `120007`)
 - **Dependencies**: none (standalone)
-- **Footprint**: a few MB, depending on database size
 
 ## Project Structure
 
@@ -141,7 +141,10 @@ PvPTooltip/
 │   ├── Core/               # Lifecycle, config, events, errors, performance
 │   ├── Data/               # Player lookup + realm/region resolution
 │   ├── UI/                 # Tooltip rendering + settings panel
-│   └── db/                 # GENERATED rating/realm databases
+│   └── db/                 # GENERATED realm/region databases
+├── data/
+│   ├── PvPTooltip_DataEU/  # GENERATED per-region character add-on (EU)
+│   └── PvPTooltip_DataUS/  # GENERATED per-region character add-on (US)
 ├── scripts/                # Lint + release automation
 ├── ReleaseNotes/           # Per-version notes
 ├── CHANGELOG.md
