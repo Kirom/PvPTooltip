@@ -57,22 +57,24 @@ end
 function DatabaseManager:Initialize()
     local ns = getNamespace()
 
-    -- Expose DB references onto PvPTooltip for the other modules.
+    -- Realm/region tables come from this add-on's own db files via the namespace
+    -- bridge. Character data (pvpCharacters) is written straight to the PvPTooltip
+    -- global by the per-region data add-ons, so it is NOT taken from ns here.
     if ns then
         PvPTooltip.realmSlugs = ns.realmSlugs
         PvPTooltip.regionIDs = ns.regionIDs
-        PvPTooltip.pvpCharacters = ns.pvpCharacters
     end
 
-    databasesReady = ns ~= nil and type(ns.pvpCharacters) == "table"
+    local chars = PvPTooltip.pvpCharacters
+    databasesReady = type(chars) == "table" and next(chars) ~= nil
     realmIndex = nil -- force rebuild on next lookup
 
     if databasesReady then
-        local eu = ns.pvpCharacters["eu"] and "ok" or "missing"
-        local us = ns.pvpCharacters["us"] and "ok" or "missing"
+        local eu = chars["eu"] and "ok" or "missing"
+        local us = chars["us"] and "ok" or "missing"
         PvPTooltip:Debug("DatabaseManager initialized (eu=" .. eu .. ", us=" .. us .. ")")
     else
-        PvPTooltip:Error("DatabaseManager: pvpCharacters database not found")
+        PvPTooltip:Debug("DatabaseManager: no region data add-on loaded (no PvP data)")
     end
 
     return databasesReady
