@@ -37,7 +37,7 @@ PvP Tooltip is a lightweight addon that enhances your gameplay by displaying det
 
 ## 📊 What You'll See
 
-![PvP Tooltip example](assets/tooltip-example.png)
+![PvP Tooltip example](https://raw.githubusercontent.com/Kirom/PvPTooltip/master/assets/tooltip-example.png)
 
 Hovering any player adds these sections to the tooltip:
 
