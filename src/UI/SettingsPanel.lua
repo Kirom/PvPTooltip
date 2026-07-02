@@ -173,9 +173,6 @@ function SettingsPanel:Initialize()
     checkbox(PvPTooltipDB, "debug", "Debug logging",
         "Print debug messages to chat.")
 
-    -- Region data add-ons (PvPTooltip_DataEU/US) are toggled in the ESC > AddOns
-    -- list, RaiderIO-style — not here. Addon.lua auto-disables the foreign region.
-
     Settings.RegisterAddOnCategory(category)
     self.categoryID = category:GetID()
     self.category = category
