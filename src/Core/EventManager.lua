@@ -31,6 +31,18 @@ function EventManager:RegisterTooltipEvents()
         end
     end)
 
+    -- Live modifier gate: pressing/releasing the configured key while a unit
+    -- tooltip is shown re-renders it immediately (SetUnit rebuilds the tooltip
+    -- and re-fires our post-call hook), instead of requiring a re-hover.
+    local modFrame = CreateFrame("Frame")
+    modFrame:RegisterEvent("MODIFIER_STATE_CHANGED")
+    modFrame:SetScript("OnEvent", function()
+        local mod = PvPTooltipDB and PvPTooltipDB.settings and PvPTooltipDB.settings.modifier
+        if mod and mod ~= "always" then
+            EventManager:RefreshActiveTooltip()
+        end
+    end)
+
     eventsRegistered = true
     PvPTooltip:Debug("Tooltip events registered (TooltipDataProcessor)")
 end
