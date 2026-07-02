@@ -114,10 +114,10 @@ function SettingsPanel:Initialize()
         end
     end
 
-    local function checkbox(tbl, key, name, tip, onChange)
+    local function checkbox(tbl, key, name, tip, default, onChange)
         local variable = "PvPTooltip_" .. key
         local setting = Settings.RegisterAddOnSetting(
-            category, variable, key, tbl, boolType, name, tbl[key])
+            category, variable, key, tbl, boolType, name, default)
         setting:SetValueChangedCallback(function(_, value)
             if onChange then onChange(value) end
             onSettingChanged()
@@ -130,12 +130,12 @@ function SettingsPanel:Initialize()
     -- Master enable + debug live at the top level of PvPTooltipDB (slash commands
     -- read them), so bind directly there. SetEnabled also (re)registers events.
     checkbox(PvPTooltipDB, "enabled", "Enable PvPTooltip",
-        "Show PvP ratings in unit tooltips.",
+        "Show PvP ratings in unit tooltips.", true,
         function(value) PvPTooltip:SetEnabled(value) end)
 
     local modSetting = Settings.RegisterAddOnSetting(
         category, "PvPTooltip_modifier", "modifier", s, strType,
-        "Show info when", s.modifier)
+        "Show info when", "always")
     modSetting:SetValueChangedCallback(onSettingChanged)
     Settings.CreateDropdown(category, modSetting, function()
         local c = Settings.CreateControlTextContainer()
@@ -147,9 +147,9 @@ function SettingsPanel:Initialize()
     end, "Only show PvP info while this key is held.")
 
     header("Sections")
-    checkbox(s, "showRating", "Current Rating", "Show the Current Rating section.")
-    checkbox(s, "showExperience", "Character Experience", "Show personal-best ratings.")
-    checkbox(s, "showSeason", "Current Season", "Show games played and win rate.")
+    checkbox(s, "showRating", "Current Rating", "Show the Current Rating section.", true)
+    checkbox(s, "showExperience", "Character Experience", "Show personal-best ratings.", true)
+    checkbox(s, "showSeason", "Current Season", "Show games played and win rate.", true)
 
     header("Brackets")
     local brackets = {
@@ -160,18 +160,18 @@ function SettingsPanel:Initialize()
         local key, name = b[1], b[2]
         local variable = "PvPTooltip_bracket_" .. key
         local setting = Settings.RegisterAddOnSetting(
-            category, variable, key, s.brackets, boolType, name, s.brackets[key])
+            category, variable, key, s.brackets, boolType, name, true)
         setting:SetValueChangedCallback(onSettingChanged)
         Settings.CreateCheckbox(category, setting, "Show the " .. name .. " bracket.")
     end
 
     header("Display")
     checkbox(s, "showAllSpecs", "Show all specs for Shuffle/Blitz",
-        "Off: show only the hovered unit's active spec.")
+        "Off: show only the hovered unit's active spec.", true)
     checkbox(s, "hideEmpty", "Hide brackets with no games",
-        "Hide a bracket entirely when there are 0 games.")
+        "Hide a bracket entirely when there are 0 games.", false)
     checkbox(PvPTooltipDB, "debug", "Debug logging",
-        "Print debug messages to chat.")
+        "Print debug messages to chat.", false)
 
     Settings.RegisterAddOnCategory(category)
     self.categoryID = category:GetID()
