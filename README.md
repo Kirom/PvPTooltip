@@ -12,8 +12,8 @@
 
 [![Release](https://img.shields.io/github/v/release/Kirom/PvPTooltip)](https://github.com/Kirom/PvPTooltip/releases/latest)
 [![Build](https://img.shields.io/github/actions/workflow/status/Kirom/PvPTooltip/release.yml?label=Build)](https://github.com/Kirom/PvPTooltip/actions)
-[![CurseForge](https://img.shields.io/badge/CurseForge-Install-orange?logo=curseforge)](https://www.curseforge.com/wow/addons/pvp-tooltip)
-[![Wago](https://img.shields.io/badge/Wago-Install-blue)](https://addons.wago.io/addons/pvp-tooltip)
+[![CurseForge](https://img.shields.io/badge/CurseForge-Install-orange?logo=curseforge)](https://www.curseforge.com/wow/addons/pvptooltip)
+[![Wago](https://img.shields.io/badge/Wago-Install-blue)](https://addons.wago.io/addons/pvptooltip)
 
 [![World of Warcraft](https://img.shields.io/badge/World%20of%20Warcraft-Midnight-0084ff?logo=battle.net)](https://worldofwarcraft.blizzard.com/)
 [![Game Version](https://img.shields.io/badge/Game%20Version-12.0.7-brightgreen)](https://github.com/Kirom/PvPTooltip)
