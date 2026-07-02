@@ -42,7 +42,16 @@ function RealmResolver:NormalizeRealmName(realmName)
     end
     
     local normalized = realmName
-    
+
+    local slugs = PvPTooltip.realmSlugs
+    if slugs then
+        local english = slugs[normalized]
+            or slugs[string.gsub(normalized, "[%s'`%-]", "")]
+        if english then
+            normalized = english
+        end
+    end
+
     -- Convert to lowercase
     normalized = string.lower(normalized)
     

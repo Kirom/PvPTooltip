@@ -25,20 +25,6 @@ function PlayerLookup:Initialize()
     return true
 end
 
--- Fallback realm normalization when RealmResolver is not ready. Must produce
--- the same shape as RealmResolver:NormalizeRealmName (lowercase, spaces /
--- apostrophes / hyphens stripped) or the result never matches the DB index.
-function PlayerLookup:FallbackNormalizeRealm(realmName)
-    if not realmName then
-        return nil
-    end
-
-    local normalized = string.lower(realmName)
-    normalized = string.gsub(normalized, "[%s'`%-]", "")
-
-    return normalized
-end
-
 -- Parse GUID to extract the realm (server) ID, the reliable region source.
 -- GUID format: Player-[server_id]-[player_id]
 function PlayerLookup:ParseGUID(guid)
@@ -80,11 +66,7 @@ function PlayerLookup:GetUnitInfo(unitID)
         return nil
     end
 
-    local normalizedRealm
-    if PvPTooltip.RealmResolver and PvPTooltip.RealmResolver.NormalizeRealmName then
-        normalizedRealm = PvPTooltip.RealmResolver:NormalizeRealmName(unitRealm)
-    end
-    normalizedRealm = normalizedRealm or self:FallbackNormalizeRealm(unitRealm)
+    local normalizedRealm = PvPTooltip.RealmResolver:NormalizeRealmName(unitRealm)
     if not normalizedRealm then
         return nil
     end
