@@ -367,7 +367,7 @@ function PlayerLookup:HandleCrossFactionData(playerName, realmName, region)
     
     -- Try different realm name variations
     local realmVariations = self:GenerateRealmVariations(realmName)
-    
+
     for _, realmVariation in ipairs(realmVariations) do
         local playerData = self:LookupPlayerInDatabase(playerName, realmVariation, region)
         if playerData then
@@ -375,15 +375,7 @@ function PlayerLookup:HandleCrossFactionData(playerName, realmName, region)
             return playerData
         end
     end
-    
-    -- Try the opposite region as a fallback
-    local oppositeRegion = (region == "eu") and "us" or "eu"
-    local playerData = self:LookupPlayerInDatabase(playerName, realmName, oppositeRegion)
-    if playerData then
-        PvPTooltip:Debug("Found data in opposite region: " .. oppositeRegion)
-        return playerData
-    end
-    
+
     return nil
 end
 
