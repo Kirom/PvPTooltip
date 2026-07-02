@@ -1,5 +1,7 @@
 -- PvPTooltip Player Lookup
--- Coordinates player data retrieval with proper fallback handling
+-- Resolves a unit or "Name-Realm" string to PvP data from the database, with a
+-- short-lived cache. Error isolation happens once at the tooltip-hook boundary
+-- (EventManager), so this module is plain code.
 
 local PlayerLookup = {}
 PvPTooltip.PlayerLookup = PlayerLookup
@@ -10,262 +12,17 @@ local cacheTimeout = 300 -- 5 minutes
 
 -- Sentinel for a cached "player not in DB" result. Storing plain nil would make
 -- the entry indistinguishable from a cache miss, so misses would re-run the
--- full lookup cascade on every hover.
+-- full lookup on every hover.
 local NO_DATA = {}
 
 -- Initialize the player lookup module
 function PlayerLookup:Initialize()
-    PvPTooltip:Debug("PlayerLookup initializing...")
-    
-    -- Ensure dependencies are available
     if not PvPTooltip.DatabaseManager or not PvPTooltip.RealmResolver then
         PvPTooltip:Error("PlayerLookup requires DatabaseManager and RealmResolver")
         return false
     end
-    
-    -- Initialize without waiting for dependencies to be fully ready
-    -- Dependencies will be checked at runtime when needed
-    PvPTooltip:Debug("PlayerLookup initialized successfully (dependencies will be checked at runtime)")
-    
+    PvPTooltip:Debug("PlayerLookup initialized")
     return true
-end
-
--- Main lookup function for unit-based queries with comprehensive error handling
-function PlayerLookup:FindPlayerData(unitID)
-    -- Handle unit resolution failures gracefully
-    if not unitID then
-        PvPTooltip:Debug("No unitID provided to FindPlayerData - graceful degradation")
-        return nil
-    end
-    
-    -- Protect against unit resolution failures without breaking tooltips
-    local success, unitInfo = pcall(function()
-        return self:GetUnitInfo(unitID)
-    end)
-    
-    if not success then
-        PvPTooltip:Debug("Unit resolution failed for: " .. tostring(unitID) .. " - error: " .. tostring(unitInfo))
-        return nil
-    end
-    
-    if not unitInfo then
-        PvPTooltip:Debug("Could not extract unit info for: " .. tostring(unitID) .. " - graceful degradation")
-        return nil
-    end
-    
-    -- Validate extracted unit information
-    if not self:ValidateUnitInfo(unitInfo) then
-        PvPTooltip:Debug("Invalid unit info extracted for: " .. tostring(unitID) .. " - graceful degradation")
-        return nil
-    end
-    
-    PvPTooltip:Debug(string.format("Looking up player: %s on %s", 
-        unitInfo.name or "unknown", unitInfo.realm or "unknown"))
-    
-    -- Check cache first with error protection
-    local success, cacheKey = pcall(function()
-        return self:GenerateCacheKey(unitInfo.name, unitInfo.realm)
-    end)
-    
-    if success and cacheKey then
-        local cachedData = self:GetFromCache(cacheKey)
-        if cachedData then
-            PvPTooltip:Debug("Found cached data for " .. (unitInfo.name or "unknown"))
-            return cachedData ~= NO_DATA and cachedData or nil
-        end
-    else
-        PvPTooltip:Debug("Error generating cache key: " .. tostring(cacheKey))
-    end
-    
-    -- Determine region for the realm with error protection.
-    -- Prefer the realm ID from the unit GUID (mapped via regionIDs) which is
-    -- reliable; fall back to the realm name heuristic only if unavailable.
-    local region = nil
-    if PvPTooltip.RealmResolver and PvPTooltip.RealmResolver.GetRegionForRealm then
-        local realmIdentifier = unitInfo.realm
-        if unitInfo.guidInfo and unitInfo.guidInfo.serverID then
-            realmIdentifier = unitInfo.guidInfo.serverID
-        end
-
-        local success, result = pcall(function()
-            return PvPTooltip.RealmResolver:GetRegionForRealm(realmIdentifier)
-        end)
-
-        if success then
-            region = result
-        else
-            PvPTooltip:Debug("Error determining region: " .. tostring(result))
-        end
-    end
-    
-    if not region then
-        PvPTooltip:Debug("Could not determine region for realm: " .. (unitInfo.realm or "unknown") .. " - graceful degradation")
-        return nil
-    end
-    
-    -- Attempt to find player data using enhanced lookup with error protection
-    local success, playerData = pcall(function()
-        return self:EnhancedLookup(unitInfo.name, unitInfo.realm, region)
-    end)
-
-    if not success then
-        PvPTooltip:Debug("Error during enhanced lookup: " .. tostring(playerData))
-        playerData = nil
-    end
-    
-    -- Cache the result (even if nil) to avoid repeated lookups, with error protection
-    if cacheKey then
-        local success, _ = pcall(function()
-            self:AddToCache(cacheKey, playerData)
-        end)
-        
-        if not success then
-            PvPTooltip:Debug("Error caching lookup result")
-        end
-    end
-    
-    if playerData then
-        PvPTooltip:Debug("Found PvP data for " .. (unitInfo.name or "unknown"))
-    else
-        PvPTooltip:Debug("No PvP data found for " .. (unitInfo.name or "unknown") .. " - graceful degradation")
-    end
-    
-    return playerData
-end
-
--- Validate unit information to prevent processing invalid data
-function PlayerLookup:ValidateUnitInfo(unitInfo)
-    if not unitInfo or type(unitInfo) ~= "table" then
-        return false
-    end
-    
-    -- Check required fields
-    if not unitInfo.name or type(unitInfo.name) ~= "string" or unitInfo.name == "" then
-        return false
-    end
-    
-    if not unitInfo.realm or type(unitInfo.realm) ~= "string" or unitInfo.realm == "" then
-        return false
-    end
-    
-    -- Additional validation for suspicious data
-    if string.len(unitInfo.name) > 50 or string.len(unitInfo.realm) > 100 then
-        return false
-    end
-    
-    return true
-end
-
--- Extract name, realm, and other unit details from WoW API with comprehensive error handling
-function PlayerLookup:GetUnitInfo(unitID)
-    if not unitID then
-        return nil
-    end
-    
-    -- Protect against WoW API failures
-    local success, unitName, unitRealm = pcall(UnitName, unitID)
-    if not success or not unitName then
-        PvPTooltip:Debug("UnitName API call failed for: " .. tostring(unitID))
-        return nil
-    end
-    
-    -- Handle cases where realm might be nil (same realm) with error protection
-    if not unitRealm or unitRealm == "" then
-        local success, realmName = pcall(GetRealmName)
-        if success and realmName then
-            unitRealm = realmName
-        else
-            PvPTooltip:Debug("GetRealmName API call failed, using fallback")
-            unitRealm = "Unknown"
-        end
-    end
-    
-    -- Get additional unit information with error protection for each API call
-    local unitGUID = nil
-    local success, guid = pcall(UnitGUID, unitID)
-    if success then
-        unitGUID = guid
-    end
-    
-    local unitClass = nil
-    local success, class = pcall(UnitClass, unitID)
-    if success then
-        unitClass = class
-    end
-    
-    local unitLevel = nil
-    local success, level = pcall(UnitLevel, unitID)
-    if success then
-        unitLevel = level
-    end
-    
-    local unitFaction = nil
-    local success, faction = pcall(UnitFactionGroup, unitID)
-    if success then
-        unitFaction = faction
-    end
-    
-    -- Clean up the name (remove server suffix if present) with error protection
-    local cleanName = unitName
-    local success, result = pcall(function()
-        return string.gsub(unitName, "%-.*", "")
-    end)
-    if success then
-        cleanName = result
-    end
-    
-    -- Validate cleaned name
-    if not cleanName or cleanName == "" then
-        PvPTooltip:Debug("Invalid cleaned name for unit: " .. tostring(unitID))
-        return nil
-    end
-    
-    -- Normalize realm name using RealmResolver if available, with error protection
-    local normalizedRealm = unitRealm
-    if PvPTooltip.RealmResolver and PvPTooltip.RealmResolver.NormalizeRealmName then
-        local success, result = pcall(function()
-            return PvPTooltip.RealmResolver:NormalizeRealmName(unitRealm)
-        end)
-        if success and result then
-            normalizedRealm = result
-        else
-            PvPTooltip:Debug("RealmResolver normalization failed, using fallback")
-            normalizedRealm = self:FallbackNormalizeRealm(unitRealm)
-        end
-    else
-        -- Fallback normalization if RealmResolver not ready
-        normalizedRealm = self:FallbackNormalizeRealm(unitRealm)
-    end
-    
-    -- Extract additional info from GUID if available with error protection
-    local guidInfo = nil
-    if unitGUID then
-        local success, result = pcall(function()
-            return self:ParseGUID(unitGUID)
-        end)
-        if success then
-            guidInfo = result
-        end
-    end
-    
-    -- Final validation of extracted data
-    if not cleanName or not normalizedRealm then
-        PvPTooltip:Debug("Essential unit info missing after extraction")
-        return nil
-    end
-    
-    return {
-        name = cleanName,
-        fullName = unitName,
-        realm = normalizedRealm,
-        originalRealm = unitRealm,
-        guid = unitGUID,
-        guidInfo = guidInfo,
-        class = unitClass,
-        level = unitLevel,
-        faction = unitFaction,
-        unitID = unitID
-    }
 end
 
 -- Fallback realm normalization when RealmResolver is not ready. Must produce
@@ -282,15 +39,14 @@ function PlayerLookup:FallbackNormalizeRealm(realmName)
     return normalized
 end
 
--- Parse GUID to extract additional unit information
+-- Parse GUID to extract the realm (server) ID, the reliable region source.
+-- GUID format: Player-[server_id]-[player_id]
 function PlayerLookup:ParseGUID(guid)
     if not guid then
         return nil
     end
-    
-    -- GUID format: Player-[server_id]-[player_id]
+
     local guidType, serverID, playerID = string.match(guid, "([^-]+)-([^-]+)-([^-]+)")
-    
     if guidType == "Player" and serverID and playerID then
         return {
             type = guidType,
@@ -298,166 +54,89 @@ function PlayerLookup:ParseGUID(guid)
             playerID = tonumber(playerID)
         }
     end
-    
+
     return nil
 end
 
--- Look up player in database with comprehensive error handling and graceful degradation
-function PlayerLookup:LookupPlayerInDatabase(playerName, realmName, region)
-    -- Validate input parameters
-    if not playerName or type(playerName) ~= "string" or playerName == "" then
-        PvPTooltip:Debug("Invalid playerName for database lookup: " .. tostring(playerName))
-        return nil
-    end
-    
-    if not realmName or type(realmName) ~= "string" or realmName == "" then
-        PvPTooltip:Debug("Invalid realmName for database lookup: " .. tostring(realmName))
-        return nil
-    end
-    
-    if not region or type(region) ~= "string" or region == "" then
-        PvPTooltip:Debug("Invalid region for database lookup: " .. tostring(region))
-        return nil
-    end
-    
-    -- Graceful degradation: ensure database manager exists
-    if not PvPTooltip.DatabaseManager then
-        PvPTooltip:Debug("DatabaseManager not available - graceful degradation")
-        return nil
-    end
-    
-    -- Graceful degradation: ensure database is available
-    local success, isAvailable = pcall(function()
-        return PvPTooltip.DatabaseManager:IsDataAvailable()
-    end)
-    
-    if not success or not isAvailable then
-        PvPTooltip:Debug("Database not available for lookup - graceful degradation")
-        return nil
-    end
-    
-    -- Attempt database lookup with comprehensive error protection
-    local success, playerData = pcall(function()
-        return PvPTooltip.DatabaseManager:GetPlayerData(playerName, realmName, region)
-    end)
-    
-    if not success then
-        PvPTooltip:Debug("Error during database lookup: " .. tostring(playerData) .. " - graceful degradation")
+-- Extract name and normalized realm for a unit. Returns nil for unnamed units.
+function PlayerLookup:GetUnitInfo(unitID)
+    if not unitID then
         return nil
     end
 
-    -- No structural validation here: DatabaseManager:GetPlayerData already returns
-    -- a normalized schema, and TooltipRenderer:ValidatePlayerData performs the
-    -- "has meaningful data" check with correct handling of per-spec (array-form)
-    -- shuffle/blitz brackets, which a flat field check here would wrongly reject.
-    return playerData
+    local unitName, unitRealm = UnitName(unitID)
+    if not unitName then
+        return nil
+    end
+
+    -- Realm is nil/empty for same-realm units.
+    if not unitRealm or unitRealm == "" then
+        unitRealm = GetRealmName() or "Unknown"
+    end
+
+    -- Strip a "-Realm" suffix from the name if present.
+    local cleanName = string.gsub(unitName, "%-.*", "")
+    if cleanName == "" then
+        return nil
+    end
+
+    local normalizedRealm
+    if PvPTooltip.RealmResolver and PvPTooltip.RealmResolver.NormalizeRealmName then
+        normalizedRealm = PvPTooltip.RealmResolver:NormalizeRealmName(unitRealm)
+    end
+    normalizedRealm = normalizedRealm or self:FallbackNormalizeRealm(unitRealm)
+    if not normalizedRealm then
+        return nil
+    end
+
+    return {
+        name = cleanName,
+        realm = normalizedRealm,
+        guidInfo = self:ParseGUID(UnitGUID(unitID)),
+        unitID = unitID
+    }
 end
 
--- Handle cross-faction character lookups
-function PlayerLookup:HandleCrossFactionData(playerName, realmName, region)
+-- Look up player in database. No name/realm variation cascade: the DB realm
+-- index is keyed by the same normalizer both ways, and character names are
+-- stored exact-case, so variations could never produce an additional match.
+function PlayerLookup:LookupPlayerInDatabase(playerName, realmName, region)
     if not playerName or not realmName or not region then
         return nil
     end
-    
-    -- Try different name variations that might exist in the database
-    local nameVariations = self:GenerateNameVariations(playerName)
-    
-    for _, variation in ipairs(nameVariations) do
-        local playerData = self:LookupPlayerInDatabase(variation, realmName, region)
-        if playerData then
-            PvPTooltip:Debug("Found cross-faction data using name variation: " .. variation)
-            return playerData
-        end
+    if not (PvPTooltip.DatabaseManager and PvPTooltip.DatabaseManager:IsDataAvailable()) then
+        PvPTooltip:Debug("Database not available for lookup")
+        return nil
     end
-    
-    -- Try different realm name variations
-    local realmVariations = self:GenerateRealmVariations(realmName)
-
-    for _, realmVariation in ipairs(realmVariations) do
-        local playerData = self:LookupPlayerInDatabase(playerName, realmVariation, region)
-        if playerData then
-            PvPTooltip:Debug("Found data using realm variation: " .. realmVariation)
-            return playerData
-        end
-    end
-
-    return nil
+    return PvPTooltip.DatabaseManager:GetPlayerData(playerName, realmName, region)
 end
 
--- Generate realm name variations for cross-realm lookups
-function PlayerLookup:GenerateRealmVariations(realmName)
-    if not realmName then
-        return {}
+-- Main lookup function for unit-based queries.
+function PlayerLookup:FindPlayerData(unitID)
+    local unitInfo = self:GetUnitInfo(unitID)
+    if not unitInfo then
+        PvPTooltip:Debug("Could not extract unit info for: " .. tostring(unitID))
+        return nil
     end
-    
-    local variations = {}
-    
-    -- Add original realm name
-    table.insert(variations, realmName)
-    
-    -- Add normalized version
-    local normalized = self:FallbackNormalizeRealm(realmName)
-    if normalized and normalized ~= realmName then
-        table.insert(variations, normalized)
-    end
-    
-    -- Add version with spaces replaced by hyphens
-    local withHyphens = string.gsub(realmName, "%s+", "-")
-    if withHyphens ~= realmName then
-        table.insert(variations, withHyphens)
-    end
-    
-    -- Add version with hyphens replaced by spaces
-    local withSpaces = string.gsub(realmName, "%-+", " ")
-    if withSpaces ~= realmName then
-        table.insert(variations, withSpaces)
-    end
-    
-    -- Add version without special characters
-    local withoutSpecial = string.gsub(realmName, "[^%w]", "")
-    if withoutSpecial ~= realmName and withoutSpecial ~= "" then
-        table.insert(variations, withoutSpecial)
-    end
-    
-    return variations
-end
 
--- Generate name variations for cross-faction lookups
-function PlayerLookup:GenerateNameVariations(playerName)
-    if not playerName then
-        return {}
+    local cacheKey = self:GenerateCacheKey(unitInfo.name, unitInfo.realm)
+    local cachedData = self:GetFromCache(cacheKey)
+    if cachedData then
+        return cachedData ~= NO_DATA and cachedData or nil
     end
-    
-    local variations = {}
-    
-    -- Add original name
-    table.insert(variations, playerName)
-    
-    -- Add capitalized version
-    local capitalized = string.upper(string.sub(playerName, 1, 1)) .. string.lower(string.sub(playerName, 2))
-    if capitalized ~= playerName then
-        table.insert(variations, capitalized)
+
+    -- Prefer the realm ID from the unit GUID (mapped via regionIDs), which is
+    -- reliable; GetRegionForRealm falls back to the viewer's own region.
+    local realmIdentifier = unitInfo.realm
+    if unitInfo.guidInfo and unitInfo.guidInfo.serverID then
+        realmIdentifier = unitInfo.guidInfo.serverID
     end
-    
-    -- Add all lowercase version
-    local lowercase = string.lower(playerName)
-    if lowercase ~= playerName then
-        table.insert(variations, lowercase)
-    end
-    
-    -- Add all uppercase version
-    local uppercase = string.upper(playerName)
-    if uppercase ~= playerName then
-        table.insert(variations, uppercase)
-    end
-    
-    -- Handle special characters that might be different
-    local withoutSpecial = string.gsub(playerName, "[^%w]", "")
-    if withoutSpecial ~= playerName and withoutSpecial ~= "" then
-        table.insert(variations, withoutSpecial)
-    end
-    
-    return variations
+    local region = PvPTooltip.RealmResolver:GetRegionForRealm(realmIdentifier)
+
+    local playerData = self:LookupPlayerInDatabase(unitInfo.name, unitInfo.realm, region)
+    self:AddToCache(cacheKey, playerData)
+
+    return playerData
 end
 
 -- Generate cache key for lookup results
@@ -465,7 +144,7 @@ function PlayerLookup:GenerateCacheKey(playerName, realmName)
     if not playerName or not realmName then
         return nil
     end
-    
+
     return string.lower(playerName) .. "@" .. string.lower(realmName)
 end
 
@@ -474,16 +153,15 @@ function PlayerLookup:GetFromCache(cacheKey)
     if not cacheKey or not lookupCache[cacheKey] then
         return nil
     end
-    
+
     local cacheEntry = lookupCache[cacheKey]
-    local currentTime = GetTime()
-    
+
     -- Check if cache entry is still valid
-    if (currentTime - cacheEntry.timestamp) > cacheTimeout then
+    if (GetTime() - cacheEntry.timestamp) > cacheTimeout then
         lookupCache[cacheKey] = nil
         return nil
     end
-    
+
     return cacheEntry.data
 end
 
@@ -492,32 +170,11 @@ function PlayerLookup:AddToCache(cacheKey, playerData)
     if not cacheKey then
         return
     end
-    
+
     lookupCache[cacheKey] = {
         data = playerData == nil and NO_DATA or playerData,
         timestamp = GetTime()
     }
-end
-
--- Enhanced lookup with all fallback methods
-function PlayerLookup:EnhancedLookup(playerName, realmName, region)
-    if not playerName or not realmName or not region then
-        return nil
-    end
-    
-    -- Try direct lookup first
-    local playerData = self:LookupPlayerInDatabase(playerName, realmName, region)
-    if playerData then
-        return playerData
-    end
-    
-    -- Try cross-faction variations
-    playerData = self:HandleCrossFactionData(playerName, realmName, region)
-    if playerData then
-        return playerData
-    end
-
-    return nil
 end
 
 -- Check if player lookup is ready
@@ -562,40 +219,15 @@ function PlayerLookup:FindPlayerDataByName(name, realm)
     end
 
     local cacheKey = self:GenerateCacheKey(cleanName, cleanRealm)
-    if cacheKey then
-        local cachedData = self:GetFromCache(cacheKey)
-        if cachedData then
-            return cachedData ~= NO_DATA and cachedData or nil
-        end
+    local cachedData = self:GetFromCache(cacheKey)
+    if cachedData then
+        return cachedData ~= NO_DATA and cachedData or nil
     end
 
-    local region = nil
-    if PvPTooltip.RealmResolver and PvPTooltip.RealmResolver.GetRegionForRealm then
-        local ok, result = pcall(function()
-            return PvPTooltip.RealmResolver:GetRegionForRealm(cleanRealm)
-        end)
-        if ok then
-            region = result
-        end
-    end
-    if not region then
-        PvPTooltip:Debug("FindPlayerDataByName: no region for realm " .. tostring(cleanRealm))
-        return nil
-    end
+    local region = PvPTooltip.RealmResolver:GetRegionForRealm(cleanRealm)
+    local playerData = self:LookupPlayerInDatabase(cleanName, cleanRealm, region)
+    self:AddToCache(cacheKey, playerData)
 
-    local ok, playerData = pcall(function()
-        return self:EnhancedLookup(cleanName, cleanRealm, region)
-    end)
-    if not ok then
-        PvPTooltip:Debug("FindPlayerDataByName: lookup error " .. tostring(playerData))
-        playerData = nil
-    end
-
-    if cacheKey then
-        pcall(function()
-            self:AddToCache(cacheKey, playerData)
-        end)
-    end
     return playerData
 end
 

@@ -62,13 +62,7 @@ end
 -- A unit tooltip's data was set. Tooltips rebuild their lines on each SetUnit,
 -- so we enhance directly.
 function EventManager:OnUnitTooltip(tooltip)
-    if not tooltip then
-        return
-    end
-    local ok, isReady = pcall(function()
-        return PvPTooltip and PvPTooltip.IsReady and PvPTooltip:IsReady()
-    end)
-    if not ok or not isReady then
+    if not tooltip or not PvPTooltip:IsReady() then
         return
     end
 
@@ -97,21 +91,12 @@ end
 function EventManager:ProcessTooltipUpdate(tooltip, startTime)
     local processingStartTime = startTime or GetTime()
 
-    if not tooltip then
+    if not tooltip or not tooltip:IsShown() then
         return
     end
 
-    local success, isShown = pcall(function()
-        return tooltip:IsShown()
-    end)
-    if not success or not isShown then
-        return
-    end
-
-    local success, unitName, unitID = pcall(function()
-        return tooltip:GetUnit()
-    end)
-    if not success or not unitName or not unitID then
+    local unitName, unitID = tooltip:GetUnit()
+    if not unitName or not unitID then
         return
     end
 
@@ -121,14 +106,12 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
     -- Solo Shuffle / Blitz line. Only available when inspect data is present (party,
     -- arena, recently inspected); 0/nil otherwise, in which case all specs show plainly.
     local currentSpec = nil
-    pcall(function()
-        if UnitIsPlayer(unitID) and GetInspectSpecialization then
-            local spec = GetInspectSpecialization(unitID)
-            if spec and spec > 0 then
-                currentSpec = spec
-            end
+    if UnitIsPlayer(unitID) and GetInspectSpecialization then
+        local spec = GetInspectSpecialization(unitID)
+        if spec and spec > 0 then
+            currentSpec = spec
         end
-    end)
+    end
 
     local enhanceOk, errorMsg = pcall(function()
         self:EnhanceTooltipWithPvPInfo(tooltip, unitID, currentSpec)
@@ -146,58 +129,29 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
     end
 end
 
--- Enhance tooltip with PvP information. Quiet graceful degradation on any failure
--- so a broken lookup never breaks the underlying tooltip.
+-- Enhance tooltip with PvP information. Errors are caught by the pcall in
+-- ProcessTooltipUpdate, so a broken lookup never breaks the underlying tooltip.
 function EventManager:EnhanceTooltipWithPvPInfo(tooltip, unitID, currentSpec)
-    if not PvPTooltip.PlayerLookup or not PvPTooltip.PlayerLookup.FindPlayerData then
-        PvPTooltip:Debug("PlayerLookup module not available - graceful degradation")
+    if not (PvPTooltip.PlayerLookup and PvPTooltip.TooltipRenderer) then
+        PvPTooltip:Debug("Lookup/renderer module not available - graceful degradation")
         return
     end
 
-    if not PvPTooltip.TooltipRenderer or not PvPTooltip.TooltipRenderer.EnhanceTooltip then
-        PvPTooltip:Debug("TooltipRenderer module not available - graceful degradation")
-        return
-    end
-
-    local success, playerData = pcall(function()
-        return PvPTooltip.PlayerLookup:FindPlayerData(unitID)
-    end)
-    if not success then
-        PvPTooltip:Debug("Error finding player data: " .. tostring(playerData) .. " - graceful degradation")
-        return
-    end
-
+    local playerData = PvPTooltip.PlayerLookup:FindPlayerData(unitID)
     if not playerData then
         -- No data for this player: leave the tooltip untouched (quiet).
         PvPTooltip:Debug("No PvP data found for unit: " .. tostring(unitID))
         return
     end
 
-    local renderOk, result = pcall(function()
-        return PvPTooltip.TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
-    end)
-    if not renderOk then
-        PvPTooltip:Debug("Error enhancing tooltip with PvP data: " .. tostring(result) .. " - graceful degradation")
-        return
-    end
-
-    if not result then
-        PvPTooltip:Debug("Tooltip enhancement returned false - data may be invalid")
-    end
+    PvPTooltip.TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
 end
 
 -- Append the PvP block to an arbitrary tooltip for a player identified by name
 -- (not a unit). Used by LFG/Guild/Friends surfaces. Returns true iff PvP lines
 -- were added, so a caller owning a fresh tooltip can decide keep vs. hide.
 function EventManager:EnhanceTooltipByName(tooltip, fullName)
-    if not tooltip or not fullName then
-        return false
-    end
-
-    local ok, isReady = pcall(function()
-        return PvPTooltip and PvPTooltip.IsReady and PvPTooltip:IsReady()
-    end)
-    if not ok or not isReady then
+    if not tooltip or not fullName or not PvPTooltip:IsReady() then
         return false
     end
 
@@ -205,8 +159,7 @@ function EventManager:EnhanceTooltipByName(tooltip, fullName)
         return false
     end
 
-    if not (PvPTooltip.PlayerLookup and PvPTooltip.PlayerLookup.FindPlayerDataByName
-        and PvPTooltip.TooltipRenderer and PvPTooltip.TooltipRenderer.EnhanceTooltip) then
+    if not (PvPTooltip.PlayerLookup and PvPTooltip.TooltipRenderer) then
         return false
     end
 

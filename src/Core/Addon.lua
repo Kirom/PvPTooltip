@@ -102,71 +102,21 @@ function PvPTooltip:Initialize()
         -- Keep only the player's region character DB loaded on future sessions.
         self:ConfigureRegionData()
 
-        -- Initialize core components in proper order with error protection
-        if self.Config and self.Config.Initialize then
-            local success, result = pcall(self.Config.Initialize, self.Config)
-            if not success then
-                self:Error("Failed to initialize Config module: " .. tostring(result))
-            end
-        end
-        
-        -- Initialize data management components with error protection
-        if self.RealmResolver and self.RealmResolver.Initialize then
-            local success, result = pcall(self.RealmResolver.Initialize, self.RealmResolver)
-            if not success then
-                self:Error("Failed to initialize RealmResolver module: " .. tostring(result))
-            end
-        end
-        
-        if self.DatabaseManager and self.DatabaseManager.Initialize then
-            local success, result = pcall(self.DatabaseManager.Initialize, self.DatabaseManager)
-            if not success then
-                self:Error("Failed to initialize DatabaseManager module: " .. tostring(result))
-            end
-        end
-        
-        if self.PlayerLookup and self.PlayerLookup.Initialize then
-            local success, result = pcall(self.PlayerLookup.Initialize, self.PlayerLookup)
-            if not success then
-                self:Error("Failed to initialize PlayerLookup module: " .. tostring(result))
-            end
-        end
-        
-        -- Initialize UI components with error protection
-        if self.ColorUtils and self.ColorUtils.Initialize then
-            local success, result = pcall(self.ColorUtils.Initialize, self.ColorUtils)
-            if not success then
-                self:Error("Failed to initialize ColorUtils module: " .. tostring(result))
-            end
-        end
-        
-        if self.TooltipRenderer and self.TooltipRenderer.Initialize then
-            local success, result = pcall(self.TooltipRenderer.Initialize, self.TooltipRenderer)
-            if not success then
-                self:Error("Failed to initialize TooltipRenderer module: " .. tostring(result))
-            end
-        end
-
-        if self.SettingsPanel and self.SettingsPanel.Initialize then
-            local success, result = pcall(self.SettingsPanel.Initialize, self.SettingsPanel)
-            if not success then
-                self:Error("Failed to initialize SettingsPanel module: " .. tostring(result))
-            end
-        end
-        
-        -- Initialize event management last with error protection
-        if self.EventManager and self.EventManager.Initialize then
-            local success, result = pcall(self.EventManager.Initialize, self.EventManager)
-            if not success then
-                self:Error("Failed to initialize EventManager module: " .. tostring(result))
-            end
-        end
-
-        -- Initialize extra-surface tooltip hooks (LFG / Guild / Friends)
-        if self.SurfaceHooks and self.SurfaceHooks.Initialize then
-            local success, result = pcall(self.SurfaceHooks.Initialize, self.SurfaceHooks)
-            if not success then
-                self:Error("Failed to initialize SurfaceHooks module: " .. tostring(result))
+        -- Initialize modules in dependency order, each isolated by pcall so one
+        -- broken module doesn't take the rest of the addon down. Event/hook
+        -- modules go last so everything they call into is ready.
+        local initOrder = {
+            "RealmResolver", "DatabaseManager", "PlayerLookup",
+            "ColorUtils", "TooltipRenderer", "SettingsPanel",
+            "EventManager", "SurfaceHooks",
+        }
+        for _, moduleName in ipairs(initOrder) do
+            local module = self[moduleName]
+            if module and module.Initialize then
+                local success, result = pcall(module.Initialize, module)
+                if not success then
+                    self:Error("Failed to initialize " .. moduleName .. " module: " .. tostring(result))
+                end
             end
         end
 

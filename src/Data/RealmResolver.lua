@@ -22,21 +22,9 @@ local function viewerRegion()
     return REGION_EU
 end
 
--- Initialize the resolver with database references
+-- Initialize the resolver. regionIDs is assigned by DatabaseManager:Initialize
+-- (which runs after this); GetRegionForRealm checks it at call time anyway.
 function RealmResolver:Initialize()
-    PvPTooltip:Debug("RealmResolver initializing...")
-    
-    -- Ensure database modules are available
-    if not PvPTooltip.realmSlugs then
-        PvPTooltip:Debug("RealmResolver: Realm slugs database not loaded yet")
-        return false
-    end
-    
-    if not PvPTooltip.regionIDs then
-        PvPTooltip:Debug("RealmResolver: Region IDs database not loaded yet")
-        return false
-    end
-    
     PvPTooltip:Debug("RealmResolver initialized")
     return true
 end
@@ -86,44 +74,6 @@ function RealmResolver:NormalizeRealmName(realmName)
     return normalized
 end
 
--- Get the standardized realm name from realm slug database
--- Returns the proper display name for a given realm identifier
-function RealmResolver:GetRealmName(realmIdentifier)
-    if not realmIdentifier then
-        return nil
-    end
-    
-    -- If it's a number, treat it as realm ID and look up in region database
-    if type(realmIdentifier) == "number" then
-        -- For realm IDs, we need additional logic to map to names
-        -- This would require a reverse lookup table which isn't provided in current data
-        return nil
-    end
-    
-    -- Handle string realm names/slugs
-    local realmStr = tostring(realmIdentifier)
-    
-    -- First try direct lookup in realm slugs
-    if PvPTooltip.realmSlugs and PvPTooltip.realmSlugs[realmStr] then
-        return PvPTooltip.realmSlugs[realmStr]
-    end
-    
-    -- Try normalized version
-    local normalized = self:NormalizeRealmName(realmStr)
-    if normalized and PvPTooltip.realmSlugs then
-        -- Search through realm slugs for a match
-        for slug, displayName in pairs(PvPTooltip.realmSlugs) do
-            local normalizedSlug = self:NormalizeRealmName(slug)
-            if normalizedSlug == normalized then
-                return displayName
-            end
-        end
-    end
-    
-    -- If no match found, return the original identifier
-    return realmStr
-end
-
 -- Determine the region (EU/US) for a given realm
 -- Uses the region ID database to map realm IDs to regions
 function RealmResolver:GetRegionForRealm(realmIdentifier)
@@ -140,27 +90,6 @@ function RealmResolver:GetRegionForRealm(realmIdentifier)
     -- Realm name (or unknown ID): region-locking means every visible player is
     -- in the viewer's own region, so that is the correct answer here.
     return viewerRegion()
-end
-
--- Resolve realm information for cross-realm player lookup
--- Returns normalized realm name and region for database queries
-function RealmResolver:ResolveRealmInfo(realmIdentifier)
-    local realmName = self:GetRealmName(realmIdentifier)
-    local region = self:GetRegionForRealm(realmIdentifier)
-    local normalizedName = self:NormalizeRealmName(realmName)
-    
-    return {
-        originalName = realmIdentifier,
-        displayName = realmName,
-        normalizedName = normalizedName,
-        region = region
-    }
-end
-
--- Validate that a realm exists in our database
-function RealmResolver:IsValidRealm(realmIdentifier)
-    local realmInfo = self:ResolveRealmInfo(realmIdentifier)
-    return realmInfo and realmInfo.normalizedName ~= nil
 end
 
 -- Check if RealmResolver is ready to use
