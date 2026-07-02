@@ -263,17 +263,17 @@ function PlayerLookup:GetUnitInfo(unitID)
     }
 end
 
--- Fallback realm normalization when RealmResolver is not ready
+-- Fallback realm normalization when RealmResolver is not ready. Must produce
+-- the same shape as RealmResolver:NormalizeRealmName (lowercase, spaces /
+-- apostrophes / hyphens stripped) or the result never matches the DB index.
 function PlayerLookup:FallbackNormalizeRealm(realmName)
     if not realmName then
         return nil
     end
-    
-    -- Basic normalization
+
     local normalized = string.lower(realmName)
-    normalized = string.gsub(normalized, "%s+", "-")
-    normalized = string.gsub(normalized, "'", "")
-    
+    normalized = string.gsub(normalized, "[%s'`%-]", "")
+
     return normalized
 end
 
