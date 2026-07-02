@@ -39,6 +39,10 @@ PvP Tooltip is a World of Warcraft addon that adds ranked PvP information to pla
 
 ## What You'll See
 
+<div align="center">
+<img src="assets/tooltip-example.png" width="380" alt="PvP Tooltip example">
+</div>
+
 Hovering a player adds these sections to the tooltip:
 
 | Section | Shows |
