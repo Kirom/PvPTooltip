@@ -9,9 +9,9 @@
 ## Category: PvP
 ## X-Category: PvP
 ## X-Website: https://github.com/PvPTooltip/PvPTooltip
-## X-Curse-Project-ID: 
-## X-Wago-ID: 
-## X-WoWI-ID: 
+
+## X-Curse-Project-ID: 1595405
+## X-Wago-ID: n6VLJZGd
 
 # Database files (must be loaded first).
 # Character rating data (db_pvp_*) ships as separate per-region add-ons
