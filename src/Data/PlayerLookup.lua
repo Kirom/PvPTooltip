@@ -340,54 +340,12 @@ function PlayerLookup:LookupPlayerInDatabase(playerName, realmName, region)
         PvPTooltip:Debug("Error during database lookup: " .. tostring(playerData) .. " - graceful degradation")
         return nil
     end
-    
-    -- Validate returned data structure
-    if playerData and not self:ValidatePlayerDataStructure(playerData) then
-        PvPTooltip:Debug("Invalid player data structure returned from database - graceful degradation")
-        return nil
-    end
-    
-    return playerData
-end
 
--- Validate player data structure returned from database
-function PlayerLookup:ValidatePlayerDataStructure(playerData)
-    if not playerData or type(playerData) ~= "table" then
-        return false
-    end
-    
-    -- Check required fields
-    if not playerData.name or type(playerData.name) ~= "string" then
-        return false
-    end
-    
-    if not playerData.realm or type(playerData.realm) ~= "string" then
-        return false
-    end
-    
-    if not playerData.region or type(playerData.region) ~= "string" then
-        return false
-    end
-    
-    if not playerData.brackets or type(playerData.brackets) ~= "table" then
-        return false
-    end
-    
-    -- Validate at least one bracket has meaningful data
-    local hasValidData = false
-    for gameMode, bracketData in pairs(playerData.brackets) do
-        if type(bracketData) == "table" then
-            -- Check if bracket has any meaningful data
-            if (bracketData.currentRating and bracketData.currentRating > 0) or
-               (bracketData.personalBest and bracketData.personalBest > 0) or
-               (bracketData.playedTotal and bracketData.playedTotal > 0) then
-                hasValidData = true
-                break
-            end
-        end
-    end
-    
-    return hasValidData
+    -- No structural validation here: DatabaseManager:GetPlayerData already returns
+    -- a normalized schema, and TooltipRenderer:ValidatePlayerData performs the
+    -- "has meaningful data" check with correct handling of per-spec (array-form)
+    -- shuffle/blitz brackets, which a flat field check here would wrongly reject.
+    return playerData
 end
 
 -- Handle cross-faction character lookups
