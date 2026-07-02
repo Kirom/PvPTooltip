@@ -51,14 +51,6 @@ Config.DisplayNames = {
     ["blitz"] = "Blitz"
 }
 
--- Database file paths
-Config.DatabasePaths = {
-    euCharacters = "src/db/db_pvp_eu_characters.lua",
-    usCharacters = "src/db/db_pvp_us_characters.lua",
-    realms = "src/db/db_realms.lua",
-    regions = "src/db/db_regions.lua"
-}
-
 -- Performance and behavior settings
 Config.Performance = {
     slowQueryThreshold = 100        -- Milliseconds - log slow tooltip processing (debug only)
@@ -72,52 +64,6 @@ Config.Tooltip = {
     experienceTitle = "Character Experience", 
     seasonTitle = "Current Season"
 }
-
--- Initialize configuration
-function Config:Initialize()
-    PvPTooltip:Debug("Config module initialized")
-    
-    -- Validate color format (ensure all colors are valid hex)
-    self:ValidateColors()
-    
-    -- Set up any dynamic configuration
-    self:SetupDynamicConfig()
-end
-
--- Validate that all color values are proper hex codes
-function Config:ValidateColors()
-    local function isValidHex(color)
-        return type(color) == "string" and string.match(color, "^%x%x%x%x%x%x$")
-    end
-    
-    -- Check basic colors
-    for key, color in pairs(self.Colors) do
-        if type(color) == "string" and not isValidHex(color) then
-            PvPTooltip:Error("Invalid color format for " .. key .. ": " .. color)
-        end
-    end
-    
-    -- Check rating colors
-    for rating, color in pairs(self.Colors.ratingColors) do
-        if not isValidHex(color) then
-            PvPTooltip:Error("Invalid rating color format for " .. rating .. ": " .. color)
-        end
-    end
-    
-    -- Check win rate colors
-    for key, color in pairs(self.Colors.winRateColors) do
-        if not isValidHex(color) then
-            PvPTooltip:Error("Invalid win rate color format for " .. key .. ": " .. color)
-        end
-    end
-end
-
--- Set up any configuration that depends on runtime conditions
-function Config:SetupDynamicConfig()
-    -- Could be used for locale-specific settings, server-specific configs, etc.
-    -- Currently just logs that setup is complete
-    PvPTooltip:Debug("Dynamic configuration setup complete")
-end
 
 -- Get display name for a game mode
 function Config:GetDisplayName(gameMode)

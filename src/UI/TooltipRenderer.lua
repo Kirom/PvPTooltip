@@ -62,18 +62,9 @@ local function specVisible(entry, currentSpec)
     return entry.shuffleSpecId == currentSpec
 end
 
--- Render a subsection header (gold), tolerant of a missing ColorUtils.
+-- Render a subsection header (gold).
 local function addHeader(tooltip, text)
-    local colored = "|cFFFFD035" .. text .. "|r"
-    if PvPTooltip.ColorUtils and PvPTooltip.ColorUtils.FormatSubsectionHeader then
-        local ok, result = pcall(function()
-            return PvPTooltip.ColorUtils:FormatSubsectionHeader(text)
-        end)
-        if ok and result then
-            colored = result
-        end
-    end
-    tooltip:AddLine(colored)
+    tooltip:AddLine(PvPTooltip.ColorUtils:FormatSubsectionHeader(text))
 end
 
 -- Main rendering function - enhances tooltip with PvP information with comprehensive error handling
@@ -97,112 +88,39 @@ function TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
     
     PvPTooltip:Debug(string.format("Enhancing tooltip for player: %s", playerData.name or "unknown"))
     
-    -- Protect against tooltip rendering errors without breaking the tooltip system
+    -- Single error boundary for rendering: callers hover-path (EventManager) and
+    -- settings preview both come through here, so one pcall protects both.
     local success, result = pcall(function()
         -- Section visibility settings (absent before first-run init -> show all).
         local s = PvPTooltipDB and PvPTooltipDB.settings
 
-        -- Add main section title (Requirement 6.1) with error protection
-        local success = self:AddSectionTitle(tooltip)
-        if not success then
-            PvPTooltip:Debug("Error adding section title - continuing with degraded display")
-        end
+        self:AddSectionTitle(tooltip)
 
-        -- Add current rating section (Requirement 2.1) with error protection
         if not s or s.showRating then
-            success = self:FormatRatingSection(tooltip, playerData.brackets, currentSpec)
-            if not success then
-                PvPTooltip:Debug("Error formatting rating section - continuing with degraded display")
-            end
+            self:FormatRatingSection(tooltip, playerData.brackets, currentSpec)
         end
-
-        -- Add character experience section (Requirement 3.1) with error protection
         if not s or s.showExperience then
-            success = self:FormatExperienceSection(tooltip, playerData.brackets, currentSpec)
-            if not success then
-                PvPTooltip:Debug("Error formatting experience section - continuing with degraded display")
-            end
+            self:FormatExperienceSection(tooltip, playerData.brackets, currentSpec)
         end
-
-        -- Add current season section (Requirement 4.1) with error protection
         if not s or s.showSeason then
-            success = self:FormatSeasonSection(tooltip, playerData.brackets, currentSpec)
-            if not success then
-                PvPTooltip:Debug("Error formatting season section - continuing with degraded display")
-            end
+            self:FormatSeasonSection(tooltip, playerData.brackets, currentSpec)
         end
-
-        return true
     end)
-    
+
     if not success then
-        PvPTooltip:Debug("Critical error during tooltip enhancement: " .. tostring(result) .. " - graceful degradation")
-        
-        -- Attempt to add a minimal error-safe display
-        local fallbackSuccess, _ = pcall(function()
-            tooltip:AddLine(" ")
-            tooltip:AddLine("|cFFFF0000PvP Tooltip info:|r")
-            tooltip:AddLine("|cFFFFFFFFData temporarily unavailable|r")
-        end)
-        
-        if not fallbackSuccess then
-            PvPTooltip:Debug("Even fallback tooltip enhancement failed - complete graceful degradation")
-        end
-        
+        PvPTooltip:Debug("Error during tooltip enhancement: " .. tostring(result) .. " - graceful degradation")
         return false
     end
-    
+
     return true
 end
 
--- Add the main "PvP Tooltip info:" section title with error handling (Requirement 6.1)
+-- Add the main "PvP Tooltip info:" section title (Requirement 6.1)
 function TooltipRenderer:AddSectionTitle(tooltip)
-    if not tooltip then
-        return false
-    end
-    
-    -- Protect against configuration errors
-    local success, titleText = pcall(function()
-        if PvPTooltip.Config and PvPTooltip.Config.Tooltip and PvPTooltip.Config.Tooltip.mainTitle then
-            return PvPTooltip.Config.Tooltip.mainTitle
-        else
-            return "PvP Tooltip info:" -- Fallback title
-        end
-    end)
-    
-    if not success then
-        titleText = "PvP Tooltip info:" -- Safe fallback
-    end
-    
-    -- Protect against color utility errors
-    local coloredTitle = titleText
-    if PvPTooltip.ColorUtils and PvPTooltip.ColorUtils.FormatSectionTitle then
-        local success, result = pcall(function()
-            return PvPTooltip.ColorUtils:FormatSectionTitle(titleText)
-        end)
-        if success and result then
-            coloredTitle = result
-        else
-            -- Fallback to manual coloring
-            coloredTitle = "|cFFFF0000" .. titleText .. "|r"
-        end
-    else
-        -- Fallback to manual coloring
-        coloredTitle = "|cFFFF0000" .. titleText .. "|r"
-    end
-    
-    -- Protect against tooltip API errors
-    local success, _ = pcall(function()
-        tooltip:AddLine(" ")
-        tooltip:AddLine(coloredTitle)
-    end)
-    
-    if not success then
-        PvPTooltip:Debug("Error adding section title to tooltip")
-        return false
-    end
-    
-    return true
+    local titleText = (PvPTooltip.Config and PvPTooltip.Config.Tooltip
+        and PvPTooltip.Config.Tooltip.mainTitle) or "PvP Tooltip info:"
+    tooltip:AddLine(" ")
+    tooltip:AddLine(PvPTooltip.ColorUtils:FormatSectionTitle(titleText))
 end
 
 -- Render one bracket subsection. Shared by all three sections; the only
@@ -219,11 +137,7 @@ function TooltipRenderer:RenderSection(tooltip, brackets, currentSpec, header, v
         return false
     end
 
-    local headerOk = pcall(addHeader, tooltip, header)
-    if not headerOk then
-        PvPTooltip:Debug("Error adding section header: " .. tostring(header))
-        return false
-    end
+    addHeader(tooltip, header)
 
     local hideEmpty = settings() and settings().hideEmpty
     local gameModes = (PvPTooltip.Config and PvPTooltip.Config.GameModes)
@@ -231,14 +145,12 @@ function TooltipRenderer:RenderSection(tooltip, brackets, currentSpec, header, v
 
     for _, gameMode in ipairs(gameModes) do
         if bracketEnabled(gameMode) then
-            local ok = pcall(function()
-                local entries = getBracketEntries(brackets[gameMode])
-                if #entries == 0 then
-                    if not hideEmpty then
-                        draw(tooltip, gameMode, nil, nil)
-                    end
-                    return
+            local entries = getBracketEntries(brackets[gameMode])
+            if #entries == 0 then
+                if not hideEmpty then
+                    draw(tooltip, gameMode, nil, nil)
                 end
+            else
                 for _, entry in ipairs(entries) do
                     if specVisible(entry, currentSpec)
                        and not (hideEmpty and valueOf(entry) == 0) then
@@ -246,9 +158,6 @@ function TooltipRenderer:RenderSection(tooltip, brackets, currentSpec, header, v
                         draw(tooltip, gameMode, entry, label)
                     end
                 end
-            end)
-            if not ok then
-                PvPTooltip:Debug("Error rendering bracket: " .. tostring(gameMode))
             end
         end
     end
@@ -382,32 +291,6 @@ function TooltipRenderer:ValidatePlayerData(playerData)
     end
     
     return true
-end
-
--- Add colored line utility for custom formatting
-function TooltipRenderer:AddColoredLine(tooltip, text, colorHex)
-    if not tooltip or not text then
-        return
-    end
-    
-    local coloredText = text
-    if colorHex then
-        coloredText = PvPTooltip.ColorUtils:FormatColoredText(text, colorHex)
-    end
-    
-    tooltip:AddLine(coloredText)
-end
-
--- Add empty line for spacing
-function TooltipRenderer:AddSpacing(tooltip, lines)
-    if not tooltip then
-        return
-    end
-    
-    local lineCount = lines or 1
-    for i = 1, lineCount do
-        tooltip:AddLine(" ")
-    end
 end
 
 -- Return the module for proper loading

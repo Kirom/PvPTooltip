@@ -3,8 +3,17 @@
 
 -- Create global addon namespace
 PvPTooltip = {}
-PvPTooltip.version = "1.0.0"
 PvPTooltip.name = "PvPTooltip"
+-- Version comes from the .toc (packager substitutes @project-version@ from the
+-- git tag). A dev checkout has the raw placeholder, so show "dev" there.
+do
+    local v = C_AddOns and C_AddOns.GetAddOnMetadata
+        and C_AddOns.GetAddOnMetadata("PvPTooltip", "Version")
+    if not v or v == "" or string.find(v, "project%-version") then
+        v = "dev"
+    end
+    PvPTooltip.version = v
+end
 
 -- Addon state tracking
 local addonLoaded = false
@@ -93,71 +102,21 @@ function PvPTooltip:Initialize()
         -- Keep only the player's region character DB loaded on future sessions.
         self:ConfigureRegionData()
 
-        -- Initialize core components in proper order with error protection
-        if self.Config and self.Config.Initialize then
-            local success, result = pcall(self.Config.Initialize, self.Config)
-            if not success then
-                self:Error("Failed to initialize Config module: " .. tostring(result))
-            end
-        end
-        
-        -- Initialize data management components with error protection
-        if self.RealmResolver and self.RealmResolver.Initialize then
-            local success, result = pcall(self.RealmResolver.Initialize, self.RealmResolver)
-            if not success then
-                self:Error("Failed to initialize RealmResolver module: " .. tostring(result))
-            end
-        end
-        
-        if self.DatabaseManager and self.DatabaseManager.Initialize then
-            local success, result = pcall(self.DatabaseManager.Initialize, self.DatabaseManager)
-            if not success then
-                self:Error("Failed to initialize DatabaseManager module: " .. tostring(result))
-            end
-        end
-        
-        if self.PlayerLookup and self.PlayerLookup.Initialize then
-            local success, result = pcall(self.PlayerLookup.Initialize, self.PlayerLookup)
-            if not success then
-                self:Error("Failed to initialize PlayerLookup module: " .. tostring(result))
-            end
-        end
-        
-        -- Initialize UI components with error protection
-        if self.ColorUtils and self.ColorUtils.Initialize then
-            local success, result = pcall(self.ColorUtils.Initialize, self.ColorUtils)
-            if not success then
-                self:Error("Failed to initialize ColorUtils module: " .. tostring(result))
-            end
-        end
-        
-        if self.TooltipRenderer and self.TooltipRenderer.Initialize then
-            local success, result = pcall(self.TooltipRenderer.Initialize, self.TooltipRenderer)
-            if not success then
-                self:Error("Failed to initialize TooltipRenderer module: " .. tostring(result))
-            end
-        end
-
-        if self.SettingsPanel and self.SettingsPanel.Initialize then
-            local success, result = pcall(self.SettingsPanel.Initialize, self.SettingsPanel)
-            if not success then
-                self:Error("Failed to initialize SettingsPanel module: " .. tostring(result))
-            end
-        end
-        
-        -- Initialize event management last with error protection
-        if self.EventManager and self.EventManager.Initialize then
-            local success, result = pcall(self.EventManager.Initialize, self.EventManager)
-            if not success then
-                self:Error("Failed to initialize EventManager module: " .. tostring(result))
-            end
-        end
-
-        -- Initialize extra-surface tooltip hooks (LFG / Guild / Friends)
-        if self.SurfaceHooks and self.SurfaceHooks.Initialize then
-            local success, result = pcall(self.SurfaceHooks.Initialize, self.SurfaceHooks)
-            if not success then
-                self:Error("Failed to initialize SurfaceHooks module: " .. tostring(result))
+        -- Initialize modules in dependency order, each isolated by pcall so one
+        -- broken module doesn't take the rest of the addon down. Event/hook
+        -- modules go last so everything they call into is ready.
+        local initOrder = {
+            "RealmResolver", "DatabaseManager", "PlayerLookup",
+            "ColorUtils", "TooltipRenderer", "SettingsPanel",
+            "EventManager", "SurfaceHooks",
+        }
+        for _, moduleName in ipairs(initOrder) do
+            local module = self[moduleName]
+            if module and module.Initialize then
+                local success, result = pcall(module.Initialize, module)
+                if not success then
+                    self:Error("Failed to initialize " .. moduleName .. " module: " .. tostring(result))
+                end
             end
         end
 
@@ -204,28 +163,15 @@ eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
         local addonName = ...
-        PvPTooltip:Debug("ADDON_LOADED event received for: " .. tostring(addonName))
-        
-        -- Check for our addon (be flexible with the name)
-        if addonName == "PvPTooltip" or addonName == "PvP Tooltip" or 
-           (addonName and string.find(string.lower(addonName), "pvptooltip")) then
+        if addonName == "PvPTooltip" then
             addonLoaded = true
-            PvPTooltip:Debug("Our addon loaded: " .. tostring(addonName))
+            PvPTooltip:Debug("Addon loaded")
+            self:UnregisterEvent("ADDON_LOADED")
             PvPTooltip:Initialize()
         end
     elseif event == "PLAYER_LOGIN" then
         playerLoggedIn = true
         PvPTooltip:Debug("PLAYER_LOGIN event received")
-        PvPTooltip:Initialize()
-    end
-end)
-
--- Fallback timer to ensure addon loads even if events fail
-local fallbackTimer = C_Timer.NewTimer(2, function()
-    if not addonLoaded then
-        PvPTooltip:Debug("Fallback: Forcing addon loaded state")
-        addonLoaded = true
-        playerLoggedIn = true -- Assume player is logged in if we're running
         PvPTooltip:Initialize()
     end
 end)
@@ -254,13 +200,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("Status: " .. (PvPTooltipDB.enabled and "Enabled" or "Disabled"))
         PvPTooltip:Print("Debug: " .. (PvPTooltipDB.debug and "On" or "Off"))
         PvPTooltip:Print("Ready: " .. (PvPTooltip:IsReady() and "Yes" or "No"))
-    elseif command == "force" or command == "forceready" then
-        PvPTooltip:Print("Forcing addon to ready state...")
-        addonLoaded = true
-        playerLoggedIn = true
-        PvPTooltipDB.enabled = true
-        PvPTooltip:Initialize()
-        PvPTooltip:Print("Addon forced to ready state")
     else
         PvPTooltip:Print("Commands:")
         PvPTooltip:Print("  /pvptooltip config - Open settings panel")
@@ -268,6 +207,5 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("  /pvptooltip disable - Disable the addon")
         PvPTooltip:Print("  /pvptooltip debug - Toggle debug mode")
         PvPTooltip:Print("  /pvptooltip status - Show addon status")
-        PvPTooltip:Print("  /pvptooltip force - Force addon to ready state")
     end
 end
