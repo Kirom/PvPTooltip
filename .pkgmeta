@@ -18,6 +18,8 @@ ignore:
   - release_notes.txt
   - assets
   - docs
+  - README.md
+  - RELEASE_PROCESS.md
 
 manual-changelog: CHANGELOG.md
 
@@ -29,7 +31,6 @@ enable-nolib-creation: no
 # Ship the per-region character databases as separate top-level add-ons
 # (PvPTooltip_DataEU / PvPTooltip_DataUS) so only the player's region loads.
 move-folders:
-  PvPTooltip/src: PvPTooltip
   PvPTooltip/data/PvPTooltip_DataEU: PvPTooltip_DataEU
   PvPTooltip/data/PvPTooltip_DataUS: PvPTooltip_DataUS
 
