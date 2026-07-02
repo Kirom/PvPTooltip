@@ -205,7 +205,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
         local addonName = ...
         PvPTooltip:Debug("ADDON_LOADED event received for: " .. tostring(addonName))
-        
+
         -- Check for our addon (be flexible with the name)
         if addonName == "PvPTooltip" or addonName == "PvP Tooltip" or 
            (addonName and string.find(string.lower(addonName), "pvptooltip")) then

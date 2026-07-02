@@ -8,6 +8,11 @@ PvPTooltip.PlayerLookup = PlayerLookup
 local lookupCache = {}
 local cacheTimeout = 300 -- 5 minutes
 
+-- Sentinel for a cached "player not in DB" result. Storing plain nil would make
+-- the entry indistinguishable from a cache miss, so misses would re-run the
+-- full lookup cascade on every hover.
+local NO_DATA = {}
+
 -- Initialize the player lookup module
 function PlayerLookup:Initialize()
     PvPTooltip:Debug("PlayerLookup initializing...")
@@ -66,7 +71,7 @@ function PlayerLookup:FindPlayerData(unitID)
         local cachedData = self:GetFromCache(cacheKey)
         if cachedData then
             PvPTooltip:Debug("Found cached data for " .. (unitInfo.name or "unknown"))
-            return cachedData
+            return cachedData ~= NO_DATA and cachedData or nil
         end
     else
         PvPTooltip:Debug("Error generating cache key: " .. tostring(cacheKey))
@@ -489,7 +494,7 @@ function PlayerLookup:AddToCache(cacheKey, playerData)
     end
     
     lookupCache[cacheKey] = {
-        data = playerData,
+        data = playerData == nil and NO_DATA or playerData,
         timestamp = GetTime()
     }
 end
@@ -560,7 +565,7 @@ function PlayerLookup:FindPlayerDataByName(name, realm)
     if cacheKey then
         local cachedData = self:GetFromCache(cacheKey)
         if cachedData then
-            return cachedData
+            return cachedData ~= NO_DATA and cachedData or nil
         end
     end
 
