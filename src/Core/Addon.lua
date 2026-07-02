@@ -220,16 +220,6 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     end
 end)
 
--- Fallback timer to ensure addon loads even if events fail
-local fallbackTimer = C_Timer.NewTimer(2, function()
-    if not addonLoaded then
-        PvPTooltip:Debug("Fallback: Forcing addon loaded state")
-        addonLoaded = true
-        playerLoggedIn = true -- Assume player is logged in if we're running
-        PvPTooltip:Initialize()
-    end
-end)
-
 -- Slash command for basic addon control
 SLASH_PVPTOOLTIP1 = "/pvptooltip"
 SLASH_PVPTOOLTIP2 = "/pvpt"
@@ -254,13 +244,6 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("Status: " .. (PvPTooltipDB.enabled and "Enabled" or "Disabled"))
         PvPTooltip:Print("Debug: " .. (PvPTooltipDB.debug and "On" or "Off"))
         PvPTooltip:Print("Ready: " .. (PvPTooltip:IsReady() and "Yes" or "No"))
-    elseif command == "force" or command == "forceready" then
-        PvPTooltip:Print("Forcing addon to ready state...")
-        addonLoaded = true
-        playerLoggedIn = true
-        PvPTooltipDB.enabled = true
-        PvPTooltip:Initialize()
-        PvPTooltip:Print("Addon forced to ready state")
     else
         PvPTooltip:Print("Commands:")
         PvPTooltip:Print("  /pvptooltip config - Open settings panel")
@@ -268,6 +251,5 @@ SlashCmdList["PVPTOOLTIP"] = function(msg)
         PvPTooltip:Print("  /pvptooltip disable - Disable the addon")
         PvPTooltip:Print("  /pvptooltip debug - Toggle debug mode")
         PvPTooltip:Print("  /pvptooltip status - Show addon status")
-        PvPTooltip:Print("  /pvptooltip force - Force addon to ready state")
     end
 end

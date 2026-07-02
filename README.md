@@ -109,7 +109,6 @@ The panel includes a **live tooltip preview** that updates as you change options
 | `/pvpt enable` · `/pvpt disable` | Toggle the addon |
 | `/pvpt status` | Show current state |
 | `/pvpt debug` | Toggle debug logging |
-| `/pvpt force` | Force addon to ready state (troubleshooting) |
 
 Unknown or missing arguments print this command list to chat.
 
