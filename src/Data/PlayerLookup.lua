@@ -502,27 +502,6 @@ function PlayerLookup:AddToCache(cacheKey, playerData)
     }
 end
 
--- Handle connected realms for cross-realm lookups
-function PlayerLookup:HandleConnectedRealms(playerName, realmName, region)
-    if not playerName or not realmName or not region then
-        return nil
-    end
-    
-    -- Get connected realm information if RealmResolver is available
-    if PvPTooltip.RealmResolver and PvPTooltip.RealmResolver.HandleConnectedRealms then
-        local connectedRealm = PvPTooltip.RealmResolver:HandleConnectedRealms(realmName)
-        if connectedRealm and connectedRealm ~= realmName then
-            local playerData = self:LookupPlayerInDatabase(playerName, connectedRealm, region)
-            if playerData then
-                PvPTooltip:Debug("Found data on connected realm: " .. connectedRealm)
-                return playerData
-            end
-        end
-    end
-    
-    return nil
-end
-
 -- Enhanced lookup with all fallback methods
 function PlayerLookup:EnhancedLookup(playerName, realmName, region)
     if not playerName or not realmName or not region then
@@ -540,13 +519,7 @@ function PlayerLookup:EnhancedLookup(playerName, realmName, region)
     if playerData then
         return playerData
     end
-    
-    -- Try connected realms
-    playerData = self:HandleConnectedRealms(playerName, realmName, region)
-    if playerData then
-        return playerData
-    end
-    
+
     return nil
 end
 

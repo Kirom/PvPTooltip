@@ -214,30 +214,6 @@ function RealmResolver:ResolveRealmInfo(realmIdentifier)
     }
 end
 
--- Handle special cases for connected realms and realm groups
--- Some realms share the same database entries
-function RealmResolver:HandleConnectedRealms(realmName)
-    if not realmName then
-        return realmName
-    end
-    
-    -- Define connected realm mappings
-    -- These realms share player databases
-    local connectedRealms = {
-        -- Example connected realm groups (this would need to be populated with actual data)
-        ["aegwynn"] = "aegwynn",
-        ["bonechewer"] = "aegwynn", -- Example: if these are connected
-        -- Add more connected realm mappings as needed
-    }
-    
-    local normalized = self:NormalizeRealmName(realmName)
-    if normalized and connectedRealms[normalized] then
-        return connectedRealms[normalized]
-    end
-    
-    return realmName
-end
-
 -- Validate that a realm exists in our database
 function RealmResolver:IsValidRealm(realmIdentifier)
     local realmInfo = self:ResolveRealmInfo(realmIdentifier)
