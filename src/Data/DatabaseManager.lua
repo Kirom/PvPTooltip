@@ -118,7 +118,7 @@ local function resolveRealmKey(region, realmName)
     if not realmIndex then
         buildRealmIndex()
     end
-    local idx = realmIndex[region]
+    local idx = realmIndex and realmIndex[region]
     if not idx then
         return nil
     end
