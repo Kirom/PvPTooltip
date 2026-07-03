@@ -40,8 +40,7 @@ local SAMPLE = {
 -- reflects the current settings exactly.
 function SettingsPanel:RefreshPreview()
     if not self.preview then
-        ---@type GameTooltip
-        local tt = CreateFrame("GameTooltip", "PvPTooltipPreviewTooltip", UIParent, "GameTooltipTemplate")
+        local tt = CreateFrame("GameTooltip", "PvPTooltipPreviewTooltip", UIParent, "GameTooltipTemplate") --[[@as GameTooltip]]
         -- Above the Settings window (DIALOG strata) and clamped on-screen.
         tt:SetFrameStrata("TOOLTIP")
         tt:SetClampedToScreen(true)
