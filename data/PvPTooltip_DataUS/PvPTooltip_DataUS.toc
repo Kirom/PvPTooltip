@@ -1,6 +1,6 @@
 ## Interface: 120007
 ## Title: PvP Tooltip Data (Americas)
-## IconTexture: Interface\AddOns\PvPTooltip\Media\icon.tga
+## IconTexture: Interface\Icons\Achievement_arena_3v3_7
 ## Notes: US character rating database for PvP Tooltip. Loaded on demand per region.
 ## Author: Kirom
 ## Version: @project-version@

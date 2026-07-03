@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="assets/icon/github-256.png" width="160" alt="PvPTooltip">
-
 # PvP Tooltip
 
 **Ranked PvP ratings, personal bests and season stats — right in the player tooltip.**
