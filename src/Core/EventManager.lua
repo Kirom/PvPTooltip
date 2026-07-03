@@ -82,7 +82,7 @@ function EventManager:RefreshActiveTooltip()
         return
     end
     local _, unit = GameTooltip:GetUnit()
-    if unit then
+    if unit and not (issecretvalue and issecretvalue(unit)) then
         GameTooltip:SetUnit(unit)
     end
 end
@@ -97,6 +97,13 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
 
     local unitName, unitID = tooltip:GetUnit()
     if not unitName or not unitID then
+        return
+    end
+
+    -- Midnight 12.0: GetUnit() returns secret values in restricted contexts
+    -- (e.g. world cursor / instanced content). Tainted code can't pass secrets
+    -- to UnitIsPlayer or do string ops on them, so there's nothing we can do.
+    if issecretvalue and (issecretvalue(unitName) or issecretvalue(unitID)) then
         return
     end
 
@@ -152,6 +159,11 @@ end
 -- were added, so a caller owning a fresh tooltip can decide keep vs. hide.
 function EventManager:EnhanceTooltipByName(tooltip, fullName)
     if not tooltip or not fullName or not PvPTooltip:IsReady() then
+        return false
+    end
+
+    -- Midnight 12.0: name may be a secret value (LFG APIs in restricted contexts).
+    if issecretvalue and issecretvalue(fullName) then
         return false
     end
 
