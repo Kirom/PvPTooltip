@@ -101,10 +101,17 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
     end
 
     -- Midnight 12.0: GetUnit() returns secret values in restricted contexts
-    -- (e.g. world cursor / instanced content). Tainted code can't pass secrets
-    -- to UnitIsPlayer or do string ops on them, so there's nothing we can do.
+    -- (world cursor / instanced content), even for units whose identity we're
+    -- allowed to know (party/raid, open world). The "mouseover" token is a
+    -- plain string resolving to the same hovered unit, so retry through it;
+    -- units whose identity is truly restricted (arena enemies) return a secret
+    -- name there too, and those can never be looked up — bail quietly.
     if issecretvalue and (issecretvalue(unitName) or issecretvalue(unitID)) then
-        return
+        local mouseoverName = UnitName("mouseover")
+        if issecretvalue(mouseoverName) or not mouseoverName then
+            return
+        end
+        unitName, unitID = mouseoverName, "mouseover"
     end
 
     PvPTooltip:Debug("Processing tooltip for unit: " .. tostring(unitName) .. " (" .. tostring(unitID) .. ")")
@@ -115,6 +122,9 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
     local currentSpec = nil
     if UnitIsPlayer(unitID) and GetInspectSpecialization then
         local spec = GetInspectSpecialization(unitID)
+        if issecretvalue and issecretvalue(spec) then
+            spec = nil
+        end
         if spec and spec > 0 then
             currentSpec = spec
         end

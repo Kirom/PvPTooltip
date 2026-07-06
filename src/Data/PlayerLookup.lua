@@ -51,6 +51,11 @@ function PlayerLookup:GetUnitInfo(unitID)
     end
 
     local unitName, unitRealm = UnitName(unitID)
+    -- Midnight 12.0: secret name means identity is restricted (arena enemy);
+    -- string ops on it would error and a DB lookup is impossible anyway.
+    if issecretvalue and (issecretvalue(unitName) or issecretvalue(unitRealm)) then
+        return nil
+    end
     if not unitName then
         return nil
     end

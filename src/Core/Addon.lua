@@ -24,10 +24,21 @@ local playerLoggedIn = false
 -- Saved variables
 PvPTooltipDB = PvPTooltipDB or {}
 
--- Debug and logging functions
+-- Debug and logging functions.
+-- Tooltip hooks re-fire every ~0.2s while a tooltip stays shown (Blizzard's
+-- refresh cycle rebuilds unit tooltips; FriendsTooltip re-Shows on presence
+-- updates), repeating identical messages. Throttle exact repeats so debug
+-- output stays readable; a persisting condition still reprints every 5s.
+local debugLastPrinted = {}
 function PvPTooltip:Debug(message)
     if PvPTooltipDB.debug then
-        print("|cFF00FF00[PvPTooltip Debug]|r " .. tostring(message))
+        message = tostring(message)
+        local now = GetTime()
+        if now - (debugLastPrinted[message] or -math.huge) < 5 then
+            return
+        end
+        debugLastPrinted[message] = now
+        print("|cFF00FF00[PvPTooltip Debug]|r " .. message)
     end
 end
 
