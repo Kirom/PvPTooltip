@@ -122,10 +122,7 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
     local currentSpec = nil
     if UnitIsPlayer(unitID) and GetInspectSpecialization then
         local spec = GetInspectSpecialization(unitID)
-        if issecretvalue and issecretvalue(spec) then
-            spec = nil
-        end
-        if spec and spec > 0 then
+        if not (issecretvalue and issecretvalue(spec)) and spec and spec > 0 then
             currentSpec = spec
         end
     end
