@@ -12,7 +12,7 @@ do
     if not v or v == "" or string.find(v, "project%-version") then
         v = "dev"
     end
-    PvPTooltip.version = v
+    PvPTooltip.version = v:gsub("^v", "")
 end
 
 -- Addon state tracking
