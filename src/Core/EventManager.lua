@@ -119,7 +119,7 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
     -- Best-effort: the hovered unit's active spec, used to highlight the matching
     -- Solo Shuffle / Blitz line. Only available when inspect data is present (party,
     -- arena, recently inspected); 0/nil otherwise, in which case all specs show plainly.
-    local currentSpec = nil
+    local currentSpec ---@type number?
     if UnitIsPlayer(unitID) and GetInspectSpecialization then
         local spec = GetInspectSpecialization(unitID)
         if not (issecretvalue and issecretvalue(spec)) and spec and spec > 0 then
