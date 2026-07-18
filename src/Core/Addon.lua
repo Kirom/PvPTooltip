@@ -50,6 +50,20 @@ function PvPTooltip:Error(message)
     print("|cFFFF0000[PvPTooltip Error]|r " .. tostring(message))
 end
 
+-- Version is date-stamped (YYYY.MM.DD[.N], from the release tag). If it
+-- predates today by more than the stale threshold, a newer build exists.
+local VERSION_STALE_DAYS = 1
+function PvPTooltip:CheckVersionFreshness()
+    local y, m, d = self.version:match("^(%d+)%.(%d+)%.(%d+)")
+    if not y then
+        return
+    end
+    local ageDays = math.floor((time() - time({ year = tonumber(y), month = tonumber(m), day = tonumber(d) })) / 86400)
+    if ageDays > VERSION_STALE_DAYS then
+        self:Print("This version is " .. ageDays .. " days old. Please update to the latest version.")
+    end
+end
+
 -- Per-region character databases ship as separate add-ons (see PvPTooltip.toc /
 -- .pkgmeta). GetCurrentRegion: 1=US, 2=KR, 3=EU, 4=TW, 5=CN.
 local REGION_HOME_ADDON = {
@@ -132,6 +146,7 @@ function PvPTooltip:Initialize()
         end
 
         self:Print("Addon loaded successfully (v" .. self.version .. ")")
+        self:CheckVersionFreshness()
         self:Debug("Initialization complete")
     end
 end
