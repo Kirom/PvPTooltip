@@ -1,6 +1,6 @@
 ## Interface: 120007
 ## Title: PvP Tooltip Data (Europe)
-## IconTexture: Interface\Icons\Achievement_arena_3v3_7
+## IconTexture: Interface\AddOns\PvPTooltip\Media\icon
 ## Notes: EU character rating database for PvP Tooltip. Loaded on demand per region.
 ## Author: Kirom
 ## Version: @project-version@
