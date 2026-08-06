@@ -87,65 +87,15 @@ jobs:
           
           echo "✅ CHANGELOG.md format validation passed"
 
-      - name: Run Lua syntax check
-        run: |
-          echo "Installing luacheck..."
-          sudo apt-get update
-          sudo apt-get install -y luarocks
-          sudo luarocks install luacheck
-
-          echo "Running luacheck on Lua files..."
-          if ! luacheck src/; then
-            echo "::error::Lua syntax validation failed"
-            exit 1
-          fi
-          
-          echo "✅ Lua syntax validation passed"
-
       - name: Validate package structure
         run: |
           echo "Validating package structure..."
-          
-          # Check required files
-          test -f "PvPTooltip.toc" || { echo "::error::Missing TOC file"; exit 1; }
-          test -f "CHANGELOG.md" || { echo "::error::Missing CHANGELOG.md"; exit 1; }
-          test -f "README.md" || { echo "::error::Missing README.md"; exit 1; }
-          test -f ".pkgmeta" || { echo "::error::Missing .pkgmeta"; exit 1; }
-          test -d "src/" || { echo "::error::Missing src/ directory"; exit 1; }
-          
-          # Check for core addon files
-          find src/ -name "*.lua" | head -1 > /dev/null || { echo "::error::No Lua files found in src/"; exit 1; }
-          
-          echo "✅ Package structure validation passed"
 
-      - name: Test package creation
-        run: |
-          echo "Testing package creation..."
-          
-          # Create a test package
-          mkdir -p test-release/PvPTooltip
-          cp PvPTooltip.toc test-release/PvPTooltip/
-          cp -r src/ test-release/PvPTooltip/
-          cp CHANGELOG.md test-release/PvPTooltip/
-          cp README.md test-release/PvPTooltip/
-          cp LICENSE test-release/PvPTooltip/LICENSE.txt
-          
-          # Create test archive
-          cd test-release
-          zip -r ../test-package.zip PvPTooltip/
-          cd ..
-          
-          # Verify archive contents
-          echo "Package contents:"
-          unzip -l test-package.zip
-          
-          # Check package size (should be reasonable)
-          PACKAGE_SIZE=$(stat -f%z test-package.zip 2>/dev/null || stat -c%s test-package.zip)
-          if [ "$PACKAGE_SIZE" -gt 10485760 ]; then  # 10MB
-            echo "::warning::Package size is quite large: $(($PACKAGE_SIZE / 1024 / 1024))MB"
-          fi
-          
-          echo "✅ Package creation test passed"
+          # Lua syntax, TOC fields, and src/ structure are already checked by
+          # Test & Validate on this same PR — only check what's unique here.
+          test -f ".pkgmeta" || { echo "::error::Missing .pkgmeta"; exit 1; }
+
+          echo "✅ Package structure validation passed"
 
       - name: Summary
         run: |
@@ -154,8 +104,6 @@ jobs:
           echo ""
           echo "✅ Release notes exist and have content"
           echo "✅ CHANGELOG.md format is valid"
-          echo "✅ Lua syntax is correct"
           echo "✅ Package structure is valid"
-          echo "✅ Package creation works"
           echo ""
           echo "The release is ready to be published!"

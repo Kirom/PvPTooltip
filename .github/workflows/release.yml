@@ -16,77 +16,13 @@ env:
   WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
 
 jobs:
-  # Pre-release validation
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Get version information
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.tag }}"
-          else
-            VERSION=$(git describe --tags --abbrev=0)
-          fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "version_clean=${VERSION#v}" >> $GITHUB_OUTPUT
-          echo "Preparing release for version: ${VERSION}"
-
-      - name: Validate release prerequisites
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          echo "Validating release prerequisites for ${VERSION}..."
-          
-          # Check if release notes exist
-          if [ ! -f "ReleaseNotes/${VERSION}.md" ]; then
-            echo "::error::Release notes not found at ReleaseNotes/${VERSION}.md"
-            exit 1
-          fi
-          
-          # Check required files exist
-          test -f "PvPTooltip.toc" || { echo "::error::Missing TOC file"; exit 1; }
-          test -f "CHANGELOG.md" || { echo "::error::Missing CHANGELOG.md"; exit 1; }
-          test -f "README.md" || { echo "::error::Missing README.md"; exit 1; }
-          test -f ".pkgmeta" || { echo "::error::Missing .pkgmeta"; exit 1; }
-          test -d "src/" || { echo "::error::Missing src/ directory"; exit 1; }
-          
-          echo "✅ All prerequisite files found"
-
-      - name: Validate Lua syntax
-        run: |
-          echo "Installing luacheck..."
-          sudo apt-get update
-          sudo apt-get install -y luarocks
-          sudo luarocks install luacheck
-
-          echo "Running luacheck on Lua files..."
-          if ! luacheck src/; then
-            echo "::error::Lua syntax validation failed. Please fix the issues before releasing."
-            exit 1
-          fi
-          echo "✅ Lua syntax validation passed"
-
-      - name: Validate TOC file
-        run: |
-          echo "Validating TOC file..."
-          
-          # Check required fields
-          grep -q "^## Interface:" PvPTooltip.toc || { echo "::error::Missing Interface field"; exit 1; }
-          grep -q "^## Title:" PvPTooltip.toc || { echo "::error::Missing Title field"; exit 1; }
-          grep -q "^## Version:" PvPTooltip.toc || { echo "::error::Missing Version field"; exit 1; }
-          grep -q "^## Author:" PvPTooltip.toc || { echo "::error::Missing Author field"; exit 1; }
-          
-          echo "✅ TOC file validation passed"
-
-  # Main release job
+  # Single job: release-specific checks (not covered by Test & Validate, which
+  # already runs Lua/TOC/structure checks on this same commit via the parallel
+  # branch push) + packaging. Merged with the old validate job to avoid paying
+  # for a second full-history checkout (fetch-depth: 0 is the expensive part
+  # here, not the checks — packager needs it for version/changelog detection).
   release:
     runs-on: ubuntu-latest
-    needs: validate
     permissions:
       contents: write
     steps:
@@ -94,19 +30,35 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      
+
       - name: Get version information
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.tag }}"
           else
-            VERSION=$(git describe --tags --abbrev=0)
+            VERSION="${{ github.ref_name }}"
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "version_clean=${VERSION#v}" >> $GITHUB_OUTPUT
           echo "Processing release for version: ${VERSION}"
-      
+
+      - name: Validate release prerequisites
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Validating release prerequisites for ${VERSION}..."
+
+          # Check if release notes exist (release-specific, not checked by Test & Validate)
+          if [ ! -f "ReleaseNotes/${VERSION}.md" ]; then
+            echo "::error::Release notes not found at ReleaseNotes/${VERSION}.md"
+            exit 1
+          fi
+
+          # .pkgmeta is only needed for packaging, so only checked here
+          test -f ".pkgmeta" || { echo "::error::Missing .pkgmeta"; exit 1; }
+
+          echo "✅ Release prerequisites found"
+
       - name: Update CHANGELOG.md from ReleaseNotes
         run: |
           VERSION="${{ steps.version.outputs.version }}"
