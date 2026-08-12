@@ -5,9 +5,32 @@ All notable changes to PvP Tooltip will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.0.1] - 2026-08-12
+
+### Added
+- 
+
+### Changed
+- Support for World of Warcraft 12.1
+
+### Deprecated
+- 
+
+### Removed
+- 
+
+### Fixed
+- 
+
+### Security
+-
+
 ---
 
-*This file is automatically updated by GitHub Actions on each release. The latest version information is pulled from the ReleaseNotes directory and replaces this content during the release process.*
+**Support:** [Discord](https://discord.gg/A5N6KEgbCc) · [GitHub Issues](https://github.com/PvPTooltip/PvPTooltip/issues)
+
+Happy PvP hunting! 🗡️⚔️
 
 ## [Unreleased]
 
