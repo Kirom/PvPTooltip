@@ -16,7 +16,7 @@
 [![Wago](https://img.shields.io/badge/Wago-Install-blue)](https://addons.wago.io/addons/pvptooltip)
 
 [![World of Warcraft](https://img.shields.io/badge/World%20of%20Warcraft-Midnight-0084ff?logo=battle.net)](https://worldofwarcraft.blizzard.com/)
-[![Game Version](https://img.shields.io/badge/Game%20Version-12.0.7-brightgreen)](https://github.com/Kirom/PvPTooltip)
+[![Game Version](https://img.shields.io/badge/Game%20Version-12.1.0-brightgreen)](https://github.com/Kirom/PvPTooltip)
 [![Issues](https://img.shields.io/github/issues/Kirom/PvPTooltip)](https://github.com/Kirom/PvPTooltip/issues)
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289DA?logo=discord)](https://discord.gg/A5N6KEgbCc)
@@ -131,7 +131,7 @@ Player rating data ships as separate per-region add-ons — **PvPTooltip_DataEU*
 
 ## Requirements
 
-- **World of Warcraft**: Retail — Midnight (Interface `120007`)
+- **World of Warcraft**: Retail — Midnight (Interface `120100`)
 - **Dependencies**: none (standalone)
 
 ## Project Structure

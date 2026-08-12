@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120100
 ## Title: PvP Tooltip Data (Europe)
 ## IconTexture: Interface\AddOns\PvPTooltip\Media\icon
 ## Notes: EU character rating database for PvP Tooltip. Loaded on demand per region.
