@@ -41,3 +41,6 @@ src\Core\EventManager.lua
 
 # Surface hooks (LFG / Guild / Friends) - loaded after EventManager
 src\UI\SurfaceHooks.lua
+
+# Total RP 3 profile tooltip - loaded after EventManager
+src\UI\TRP3Integration.lua

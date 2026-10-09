@@ -58,6 +58,7 @@ PvP Tooltip enhances tooltips in all major game contexts:
 - **Group Finder** — both when searching for groups and reviewing applicants
 - **Social interactions** — guild, friends and other players
 - **Battlegrounds & arenas**
+- **Total RP 3** — shown at the bottom of TRP3 profile tooltips (can be turned off)
 
 ## 📈 Stay Up-to-Date
 

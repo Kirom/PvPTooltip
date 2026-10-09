@@ -100,6 +100,7 @@ The panel includes a **live tooltip preview** that updates as you change options
 - **Sections** — toggle Current Rating, Character Experience, Current Season
 - **Brackets** — show/hide 2v2, 3v3, Solo Shuffle, RBG, Blitz individually
 - **Display** — show all specs vs only the hovered spec; hide brackets with no games
+- **Integrations** — show PvP info in Total RP 3 profile tooltips (only listed when TRP3 is installed)
 
 ### Slash commands
 
@@ -115,6 +116,8 @@ Unknown or missing arguments print this command list to chat.
 ## Supported Contexts
 
 Tooltips are enhanced wherever a unit tooltip shows: open-world players, party and raid members, Group Finder listings and applicants, guild and friends lists, battlegrounds and arenas.
+
+With [Total RP 3](https://www.curseforge.com/wow/addons/total-rp-3) installed, the PvP block is appended to the bottom of TRP3's profile tooltip when it replaces the default one. Turn this off under **Integrations** in the settings panel.
 
 ## Data Freshness
 
