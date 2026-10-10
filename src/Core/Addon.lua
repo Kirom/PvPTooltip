@@ -121,7 +121,12 @@ function PvPTooltip:Initialize()
                 },
                 showAllSpecs = true,
                 hideEmpty = false,
+                showInTRP3 = true,
             }
+        end
+        -- Keys added after the settings block shipped: backfill for existing users.
+        if PvPTooltipDB.settings.showInTRP3 == nil then
+            PvPTooltipDB.settings.showInTRP3 = true
         end
         
         -- Keep only the player's region character DB loaded on future sessions.
@@ -133,7 +138,7 @@ function PvPTooltip:Initialize()
         local initOrder = {
             "RealmResolver", "DatabaseManager", "PlayerLookup",
             "ColorUtils", "TooltipRenderer", "SettingsPanel",
-            "EventManager", "SurfaceHooks",
+            "EventManager", "SurfaceHooks", "TRP3Integration",
         }
         for _, moduleName in ipairs(initOrder) do
             local module = self[moduleName]

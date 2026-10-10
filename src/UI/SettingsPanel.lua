@@ -173,6 +173,13 @@ function SettingsPanel:Initialize()
     checkbox(PvPTooltipDB, "debug", "Debug logging",
         "Print debug messages to chat.", false)
 
+    -- Only offered when TRP3 is loaded; the option means nothing without it.
+    if PvPTooltip.TRP3Integration and PvPTooltip.TRP3Integration:IsAvailable() then
+        header("Integrations")
+        checkbox(s, "showInTRP3", "Show in Total RP 3 tooltips",
+            "Add PvP info to the bottom of TRP3 profile tooltips. Off: PvP info is hidden while TRP3's tooltip replaces the default one.", true)
+    end
+
     Settings.RegisterAddOnCategory(category)
     self.categoryID = category:GetID()
     self.category = category

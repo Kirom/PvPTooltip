@@ -19,6 +19,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # The PR merge commit plus its base parent, so HEAD~1..HEAD is the PR's diff.
+          fetch-depth: 2
 
       - name: Get version from input or detect from changes
         id: version
@@ -26,23 +29,21 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            # Try to detect version from changed files
-            VERSION=$(git diff --name-only HEAD~1 HEAD | grep "ReleaseNotes/" | head -1 | sed 's|ReleaseNotes/||' | sed 's|\.md||' || echo "")
-            if [ -z "$VERSION" ]; then
-              # Try to get version from TOC file
-              VERSION="v$(grep "^## Version:" PvPTooltip.toc | cut -d: -f2 | tr -d ' ')"
-            fi
+            # A release PR adds ReleaseNotes/<version>.md. The TOC can't name the
+            # version: it holds the @project-version@ placeholder the packager
+            # fills in from the git tag.
+            VERSION=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD | grep "^ReleaseNotes/" | head -1 | sed 's|ReleaseNotes/||' | sed 's|\.md||' || echo "")
           fi
-          
+
           if [ -z "$VERSION" ]; then
-            echo "::error::Could not determine version to validate"
-            exit 1
+            echo "No release notes changed: not a release PR, skipping release notes checks."
+          else
+            echo "Validating release preparation for version: ${VERSION}"
           fi
-          
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Validating release preparation for version: ${VERSION}"
 
       - name: Validate release notes exist
+        if: steps.version.outputs.version != ''
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           RELEASE_NOTES_FILE="ReleaseNotes/${VERSION}.md"
@@ -55,6 +56,7 @@ jobs:
           echo "✅ Release notes found at $RELEASE_NOTES_FILE"
 
       - name: Validate release notes content
+        if: steps.version.outputs.version != ''
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           RELEASE_NOTES_FILE="ReleaseNotes/${VERSION}.md"
@@ -98,6 +100,7 @@ jobs:
           echo "✅ Package structure validation passed"
 
       - name: Summary
+        if: steps.version.outputs.version != ''
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           echo "🎉 Release validation completed successfully for version ${VERSION}"
