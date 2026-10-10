@@ -6,7 +6,9 @@
 local TRP3Integration = {}
 PvPTooltip.TRP3Integration = TRP3Integration
 
-local hooked = false
+-- TRP3's globals, resolved through _G once it has loaded. They belong to
+-- another add-on, so static analysis (lua-language-server) can't see them.
+local trp3API, characterTooltip
 
 -- AddOn_TotalRP3.Enums.UNIT_TYPE.CHARACTER. Companion (pet) profiles reuse the
 -- same tooltip frame with a different targetMode.
@@ -17,7 +19,7 @@ local LINE_SIDES = { "TextLeft", "TextRight" }
 -- TRP3's body-text font size, so our lines match the rest of its tooltip.
 -- getValue asserts on unknown keys (it's a TRP3 internal), hence the pcall.
 local function trp3BodyFontSize()
-    local config = TRP3_API and TRP3_API.configuration
+    local config = trp3API and trp3API.configuration
     if not (config and config.getValue) then
         return nil
     end
@@ -33,11 +35,11 @@ end
 -- for ignored / mature-filtered profiles, which get a short notice shown next
 -- to the GameTooltip instead.
 local function trp3HidesGameTooltip(targetID)
-    local tooltipAPI = TRP3_API.ui and TRP3_API.ui.tooltip
+    local tooltipAPI = trp3API and trp3API.ui and trp3API.ui.tooltip
     if tooltipAPI and tooltipAPI.shouldHideGameTooltip and not tooltipAPI.shouldHideGameTooltip() then
         return false
     end
-    local register = TRP3_API.register
+    local register = trp3API and trp3API.register
     if register and register.isIDIgnored and register.isIDIgnored(targetID) then
         return false
     end
@@ -102,18 +104,19 @@ local function onCharacterTooltipShow(tooltip)
 end
 
 function TRP3Integration:Hook()
-    if hooked or not TRP3_CharacterTooltip then
+    if characterTooltip or not _G.TRP3_CharacterTooltip then
         return
     end
+    characterTooltip = _G.TRP3_CharacterTooltip
+    trp3API = _G.TRP3_API
     -- pcall: an error here would propagate out of TRP3's tooltip:Show() and
     -- abort its tooltip build.
-    TRP3_CharacterTooltip:HookScript("OnShow", function(tooltip)
+    characterTooltip:HookScript("OnShow", function(tooltip)
         local ok, err = pcall(onCharacterTooltipShow, tooltip)
         if not ok then
             PvPTooltip:Debug("TRP3 tooltip error: " .. tostring(err) .. " - graceful degradation")
         end
     end)
-    hooked = true
     PvPTooltip:Debug("TRP3 integration enabled")
 end
 
@@ -121,8 +124,8 @@ end
 -- from its GameTooltip:SetUnit hook and hides the GameTooltip again - the same
 -- path its own modifier-key handling uses.
 function TRP3Integration:RefreshActiveTooltip()
-    local tooltip = TRP3_CharacterTooltip
-    if not (hooked and tooltip:IsShown() and tooltip.target and tooltip.targetMode == CHARACTER) then
+    local tooltip = characterTooltip
+    if not (tooltip and tooltip:IsShown() and tooltip.target and tooltip.targetMode == CHARACTER) then
         return
     end
     local unit = tooltip.targetType
