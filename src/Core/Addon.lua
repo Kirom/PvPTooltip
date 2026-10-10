@@ -55,10 +55,11 @@ end
 local VERSION_STALE_DAYS = 1
 function PvPTooltip:CheckVersionFreshness()
     local y, m, d = self.version:match("^(%d+)%.(%d+)%.(%d+)")
-    if not y then
+    y, m, d = tonumber(y), tonumber(m), tonumber(d)
+    if not (y and m and d) then
         return
     end
-    local ageDays = math.floor((time() - time({ year = tonumber(y), month = tonumber(m), day = tonumber(d) })) / 86400)
+    local ageDays = math.floor((time() - time({ year = y, month = m, day = d })) / 86400)
     if ageDays > VERSION_STALE_DAYS then
         self:Print("This version is " .. ageDays .. " days old. Please update to the latest version.")
     end
