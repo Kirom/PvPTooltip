@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2026.10.10] - 2026-10-10
+
+### Added
+- Total RP 3 support: PvP ratings now appear at the bottom of TRP3 profile tooltips instead of disappearing with the default tooltip (#5).
+- Settings → Integrations → **Show in Total RP 3 tooltips** to turn this off (only shown when TRP3 is installed).
+
+### Changed
+- 
+
+### Deprecated
+- 
+
+### Removed
+- 
+
+### Fixed
+- 
+
+### Security
+-
+
+---
+
+**Support:** [Discord](https://discord.gg/A5N6KEgbCc) · [GitHub Issues](https://github.com/PvPTooltip/PvPTooltip/issues)
+
+Happy PvP hunting! 🗡️⚔️
+
 ## [1.0.1] - 2026-08-12
 
 ### Added
