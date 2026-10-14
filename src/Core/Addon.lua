@@ -113,6 +113,7 @@ function PvPTooltip:Initialize()
         if not PvPTooltipDB.settings then
             PvPTooltipDB.settings = {
                 modifier = "always",        -- "always" | "shift" | "ctrl" | "alt"
+                layout = "panel",           -- "panel" | "compact" | "sections" | "classic"
                 showRating = true,
                 showExperience = true,
                 showSeason = true,
@@ -129,6 +130,9 @@ function PvPTooltip:Initialize()
         if PvPTooltipDB.settings.showInTRP3 == nil then
             PvPTooltipDB.settings.showInTRP3 = true
         end
+        if PvPTooltipDB.settings.layout == nil then
+            PvPTooltipDB.settings.layout = "panel"
+        end
         
         -- Keep only the player's region character DB loaded on future sessions.
         self:ConfigureRegionData()
@@ -138,7 +142,7 @@ function PvPTooltip:Initialize()
         -- modules go last so everything they call into is ready.
         local initOrder = {
             "RealmResolver", "DatabaseManager", "PlayerLookup",
-            "ColorUtils", "TooltipRenderer", "SettingsPanel",
+            "ColorUtils", "TooltipRenderer", "SettingsPanel", "Analytics",
             "EventManager", "SurfaceHooks", "TRP3Integration",
         }
         for _, moduleName in ipairs(initOrder) do

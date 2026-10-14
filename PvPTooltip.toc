@@ -25,6 +25,7 @@ src\Core\Addon.lua
 # Core configuration and utilities
 src\Core\Config.lua
 src\Core\DatabaseBridge.lua
+src\Core\Analytics.lua
 
 # Data management layer
 src\Data\DatabaseManager.lua
@@ -34,6 +35,9 @@ src\Data\PlayerLookup.lua
 # UI components
 src\UI\ColorUtils.lua
 src\UI\TooltipRenderer.lua
+src\UI\Layouts\Compact.lua
+src\UI\Layouts\Sections.lua
+src\UI\Layouts\Panel.lua
 src\UI\SettingsPanel.lua
 
 # Event management (loaded after all modules)
