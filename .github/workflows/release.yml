@@ -115,6 +115,15 @@ jobs:
             # Save to file for GitHub release
             echo "$RELEASE_CONTENT" > release_notes.txt
             echo "✅ Release notes extracted for GitHub release"
+
+            # Automated data refreshes have no "## [x.y.z]" section, so nothing
+            # is extracted — skip the Discord announcement for those.
+            if [ -n "$(echo "$RELEASE_CONTENT" | tr -d '[:space:]')" ]; then
+              echo "has_notes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_notes=false" >> $GITHUB_OUTPUT
+              echo "ℹ️ No changelog section found (data-only release)"
+            fi
           else
             echo "Release ${VERSION}" > release_notes.txt
             echo "⚠️ Using default release notes"
@@ -126,7 +135,7 @@ jobs:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Announce on Discord
-        if: success() && env.DISCORD_WEBHOOK != ''
+        if: success() && env.DISCORD_WEBHOOK != '' && steps.release_notes.outputs.has_notes == 'true'
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
