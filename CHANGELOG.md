@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2026.10.14] - 2026-10-14
+
+### Changed
+- Updated addon compatibility for WoW 12.1.5 (Interface `120105`).
+
+---
+
+**Support:** [Discord](https://discord.gg/A5N6KEgbCc) · [GitHub Issues](https://github.com/PvPTooltip/PvPTooltip/issues)
+
+Happy PvP hunting! 🗡️⚔️
+
 ## [2026.10.10] - 2026-10-10
 
 ### Added
