@@ -16,7 +16,7 @@
 [![Wago](https://img.shields.io/badge/Wago-Install-blue)](https://addons.wago.io/addons/pvptooltip)
 
 [![World of Warcraft](https://img.shields.io/badge/World%20of%20Warcraft-Midnight-0084ff?logo=battle.net)](https://worldofwarcraft.blizzard.com/)
-[![Game Version](https://img.shields.io/badge/Game%20Version-12.1.0-brightgreen)](https://github.com/Kirom/PvPTooltip)
+[![Game Version](https://img.shields.io/badge/Game%20Version-12.1.5-brightgreen)](https://github.com/Kirom/PvPTooltip)
 [![Issues](https://img.shields.io/github/issues/Kirom/PvPTooltip)](https://github.com/Kirom/PvPTooltip/issues)
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289DA?logo=discord)](https://discord.gg/A5N6KEgbCc)
@@ -32,6 +32,7 @@ PvP Tooltip is a World of Warcraft addon that adds ranked PvP information to pla
 - **Season stats** — games played and win rate for the current season
 - **Per-spec Shuffle/Blitz** — see each spec's rating, or just active spec
 - **Color-coded ratings** — read skill level at a glance
+- **Four tooltip layouts** — Panel with rating bars (default), Compact table, Sections, or Classic
 - **In-game settings panel** — toggle sections, brackets and a show-on-modifier key, with a live tooltip preview
 - **Multi-region** — EU and US databases, refreshed frequently
 - **Cross-realm & cross-faction** lookup, everywhere a unit tooltip appears
@@ -39,19 +40,44 @@ PvP Tooltip is a World of Warcraft addon that adds ranked PvP information to pla
 
 ## What You'll See
 
-<div align="center">
-<img src="assets/tooltip-example.png" width="380" alt="PvP Tooltip example">
-</div>
+Hovering a player adds a PvP block to the tooltip with this data for each enabled bracket:
 
-Hovering a player adds these sections to the tooltip:
+| Data | Shows |
+|------|-------|
+| **Current Rating** | Current-season rating, color-coded |
+| **Character Experience** (Best) | All-time personal-best rating |
+| **Games Played** | Games played this season and win rate |
 
-| Section | Shows |
-|---------|-------|
-| **Current Rating** | Current-season rating for each enabled bracket, color-coded |
-| **Character Experience** | All-time personal-best rating per bracket |
-| **Current Season** | Games played and win rate per bracket |
+Pick how it's laid out in the settings panel (`/pvpt` → **Tooltip layout**):
 
-For Solo Shuffle and Blitz, ratings are shown **per spec**, with the hovered player's active spec highlighted.
+<table>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <img src="assets/layouts/panel.png" width="360" alt="Panel layout"><br>
+      <b>Panel</b> (default)<br>
+      An aligned table with column headers and a rating bar per bracket (fill = current, tick = best)
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="assets/layouts/compact.png" width="360" alt="Compact layout"><br>
+      <b>Compact</b><br>
+      One line per bracket with aligned Current / Best / Played / Win% columns
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <img src="assets/layouts/sections.png" width="360" alt="Sections layout"><br>
+      <b>Sections</b><br>
+      Rating, personal best and games played listed in separate sections
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="assets/layouts/classic.png" width="360" alt="Classic layout"><br>
+      <b>Classic</b><br>
+      The original three-section look
+    </td>
+  </tr>
+</table>
+
+For Solo Shuffle and Blitz, ratings are shown **per spec** with the spec's icon; when the hovered player's active spec is known, the other specs are dimmed.
 
 ### Color Coding
 
@@ -97,9 +123,11 @@ Open it any of these ways:
 The panel includes a **live tooltip preview** that updates as you change options:
 
 - **Show info when** — Always, or only while holding **Shift / Ctrl / Alt** (great for keeping tooltips clean)
-- **Sections** — toggle Current Rating, Character Experience, Current Season
+- **Tooltip layout** — Panel, Compact, Sections or Classic
+- **Sections** — toggle Current Rating, Character Experience, Games Played (columns in Compact / Panel)
 - **Brackets** — show/hide 2v2, 3v3, Solo Shuffle, RBG, Blitz individually
 - **Display** — show all specs vs only the hovered spec; hide brackets with no games
+- **Integrations** — show PvP info in Total RP 3 profile tooltips (only listed when TRP3 is installed)
 
 ### Slash commands
 
@@ -116,6 +144,8 @@ Unknown or missing arguments print this command list to chat.
 
 Tooltips are enhanced wherever a unit tooltip shows: open-world players, party and raid members, Group Finder listings and applicants, guild and friends lists, battlegrounds and arenas.
 
+With [Total RP 3](https://www.curseforge.com/wow/addons/total-rp-3) installed, the PvP block is appended to the bottom of TRP3's profile tooltip when it replaces the default one. Turn this off under **Integrations** in the settings panel.
+
 ## Data Freshness
 
 Player rating data ships as separate per-region add-ons — **PvPTooltip_DataEU** and **PvPTooltip_DataUS** — so only your region's database loads. Realm and region mapping data lives in `src/db/` and loads with the main addon. All are generated externally and refreshed frequently from current ranked data. For the most accurate ratings, **keep the addon updated** (enable auto-update in your addon manager, install all bundled add-ons).
@@ -129,9 +159,13 @@ Player rating data ships as separate per-region add-ons — **PvPTooltip_DataEU*
 
 > These files are generated externally — do not hand-edit them.
 
+## Usage Statistics
+
+If you use the Wago App with analytics on, PvP Tooltip reports which tooltip layout you use (and any PvP Tooltip Lua errors) through Wago Analytics, so we know which layouts are worth improving. Nothing else is added, and the add-on itself never connects to the internet. You can opt out in the Wago App settings.
+
 ## Requirements
 
-- **World of Warcraft**: Retail — Midnight (Interface `120100`)
+- **World of Warcraft**: Retail — Midnight (Interface `120105`)
 - **Dependencies**: none (standalone)
 
 ## Project Structure
@@ -144,6 +178,7 @@ PvPTooltip/
 │   ├── Core/               # Lifecycle, config, events, errors, performance
 │   ├── Data/               # Player lookup + realm/region resolution
 │   ├── UI/                 # Tooltip rendering + settings panel
+│   │   └── Layouts/        # Compact / Sections / Panel tooltip layouts
 │   └── db/                 # GENERATED realm/region databases
 ├── data/
 │   ├── PvPTooltip_DataEU/  # GENERATED per-region character add-on (EU)

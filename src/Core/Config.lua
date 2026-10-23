@@ -30,7 +30,31 @@ Config.Colors = {
     winRateColors = {
         low = "FF4500",             -- Red-orange for ≤50%
         high = "57C94F"             -- Green for >50%
-    }
+    },
+
+    -- Modern layouts (Compact / Sections / Panel)
+    title = "FFD100",               -- "PvP" block title (Blizzard gold)
+    muted = "808080",               -- Column legends, section headers, empty values
+    inactive = "9D9D9D",            -- Labels of empty brackets and the unit's other specs
+    games = "C8C8C8",               -- Games played
+}
+
+-- Tooltip layouts, in settings-dropdown order. Classic is the original
+-- three-section look; the others are rendered by src/UI/Layouts/*.lua.
+Config.Layouts = { "panel", "compact", "sections", "classic" }
+Config.LayoutNames = {
+    compact = "Compact",
+    sections = "Sections",
+    panel = "Panel",
+    classic = "Classic",
+}
+Config.DefaultLayout = "panel"
+
+Config.Media = {
+    icon = "Interface\\AddOns\\PvPTooltip\\Media\\icon",
+    -- Transparent texture Blizzard uses for inline spacing; drawn at an exact
+    -- pixel width it aligns columns that spaces (proportional font) cannot.
+    spacer = "Interface\\Common\\spacer",
 }
 
 -- Game mode definitions and display order
@@ -51,6 +75,15 @@ Config.DisplayNames = {
     ["blitz"] = "Blitz"
 }
 
+-- Bracket names in the modern layouts
+Config.ShortNames = {
+    ["2v2"] = "2v2",
+    ["3v3"] = "3v3",
+    ["shuffle"] = "Shuffle",
+    ["rbg"] = "RBG",
+    ["blitz"] = "Blitz"
+}
+
 -- Performance and behavior settings
 Config.Performance = {
     slowQueryThreshold = 100        -- Milliseconds - log slow tooltip processing (debug only)
@@ -61,13 +94,23 @@ Config.Tooltip = {
     -- Section titles (Requirements 6.1, 6.2)
     mainTitle = "PvP Tooltip info:",
     currentRatingTitle = "Current Rating",
-    experienceTitle = "Character Experience", 
-    seasonTitle = "Current Season"
+    experienceTitle = "Character Experience",
+    seasonTitle = "Current Season",
+
+    -- Modern layouts
+    modernTitle = "PvP",
+    columns = { rating = "Current", best = "Best", games = "Played", win = "Win%" },
+    sectionTitles = { rating = "CURRENT RATING", best = "PERSONAL BEST", season = "PLAYED" },
 }
 
 -- Get display name for a game mode
 function Config:GetDisplayName(gameMode)
     return self.DisplayNames[gameMode] or gameMode
+end
+
+-- Get the modern-layout name for a game mode
+function Config:GetShortName(gameMode)
+    return self.ShortNames[gameMode] or gameMode
 end
 
 -- Return the module for proper loading

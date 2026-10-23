@@ -146,10 +146,33 @@ function SettingsPanel:Initialize()
         return c:GetData()
     end, "Only show PvP info while this key is held.")
 
+    local layoutSetting = Settings.RegisterAddOnSetting(
+        category, "PvPTooltip_layout", "layout", s, strType,
+        "Tooltip layout", PvPTooltip.Config.DefaultLayout)
+    layoutSetting:SetValueChangedCallback(function(_, value)
+        if PvPTooltip.Analytics then
+            PvPTooltip.Analytics:TrackLayout(value)
+        end
+        onSettingChanged()
+    end)
+    Settings.CreateDropdown(category, layoutSetting, function()
+        local c = Settings.CreateControlTextContainer()
+        for _, key in ipairs(PvPTooltip.Config.Layouts) do
+            c:Add(key, PvPTooltip.Config.LayoutNames[key])
+        end
+        return c:GetData()
+    end, "Panel: aligned table with rating bars.\n"
+        .. "Compact: one line per bracket with Current / Best / Played / Win% columns.\n"
+        .. "Sections: rating, personal best and games played listed separately.\n"
+        .. "Classic: the original look.")
+
     header("Sections")
-    checkbox(s, "showRating", "Current Rating", "Show the Current Rating section.", true)
-    checkbox(s, "showExperience", "Character Experience", "Show personal-best ratings.", true)
-    checkbox(s, "showSeason", "Current Season", "Show games played and win rate.", true)
+    checkbox(s, "showRating", "Current Rating",
+        "Show current ratings (a section, or the Current column in Compact / Panel).", true)
+    checkbox(s, "showExperience", "Character Experience",
+        "Show personal-best ratings (a section, or the Best column in Compact / Panel).", true)
+    checkbox(s, "showSeason", "Games Played",
+        "Show games played and win rate (a section, or the Played and Win% columns in Compact / Panel).", true)
 
     header("Brackets")
     local brackets = {
@@ -169,9 +192,16 @@ function SettingsPanel:Initialize()
     checkbox(s, "showAllSpecs", "Show all specs for Shuffle/Blitz",
         "Off: show only the hovered unit's active spec.", true)
     checkbox(s, "hideEmpty", "Hide brackets with no games",
-        "Hide a bracket entirely when there are 0 games.", false)
+        "Hide a bracket when its values are all 0.", false)
     checkbox(PvPTooltipDB, "debug", "Debug logging",
         "Print debug messages to chat.", false)
+
+    -- Only offered when TRP3 is loaded; the option means nothing without it.
+    if PvPTooltip.TRP3Integration and PvPTooltip.TRP3Integration:IsAvailable() then
+        header("Integrations")
+        checkbox(s, "showInTRP3", "Show in Total RP 3 tooltips",
+            "Add PvP info to the bottom of TRP3 profile tooltips. Off: PvP info is hidden while TRP3's tooltip replaces the default one.", true)
+    end
 
     Settings.RegisterAddOnCategory(category)
     self.categoryID = category:GetID()

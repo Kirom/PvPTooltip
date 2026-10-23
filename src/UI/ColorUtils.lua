@@ -92,6 +92,36 @@ function ColorUtils:FormatColoredText(text, colorHex)
     return string.format("|cff%s%s|r", cleanHex, text)
 end
 
+-- Convert a hex color to 0..1 components (for textures and SetTextColor)
+-- @param hex string - Hex color code (with or without # prefix)
+-- @return number, number, number - r, g, b (white if the hex is invalid)
+function ColorUtils:HexToRGB(hex)
+    local r, g, b = string.match(hex or "", "^#?(%x%x)(%x%x)(%x%x)$")
+    if not r then
+        return 1, 1, 1
+    end
+    return tonumber(r, 16) / 255, tonumber(g, 16) / 255, tonumber(b, 16) / 255
+end
+
+-- Get the rating tier color blended toward grey, for a secondary value shown
+-- next to the current rating (personal best in the table layouts)
+-- @param rating number - The rating value
+-- @return string - Hex color code without # prefix
+function ColorUtils:GetDimRatingColor(rating)
+    local r, g, b = self:HexToRGB(self:GetRatingColor(rating))
+    local function mix(c)
+        return math.floor((c * 0.65 + 0.69 * 0.35) * 255 + 0.5)
+    end
+    return string.format("%02X%02X%02X", mix(r), mix(g), mix(b))
+end
+
+-- Format text in the muted grey used for legends and empty values
+-- @param text string - The text to colorize
+-- @return string - Formatted colored text
+function ColorUtils:FormatMuted(text)
+    return self:FormatColoredText(text, PvPTooltip.Config.Colors.muted)
+end
+
 -- Format a rating value with appropriate color coding
 -- @param rating number - The rating value
 -- @return string - Formatted colored rating text

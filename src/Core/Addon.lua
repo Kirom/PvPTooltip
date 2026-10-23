@@ -55,10 +55,11 @@ end
 local VERSION_STALE_DAYS = 1
 function PvPTooltip:CheckVersionFreshness()
     local y, m, d = self.version:match("^(%d+)%.(%d+)%.(%d+)")
-    if not y then
+    y, m, d = tonumber(y), tonumber(m), tonumber(d)
+    if not (y and m and d) then
         return
     end
-    local ageDays = math.floor((time() - time({ year = tonumber(y) --[[@as integer]], month = tonumber(m) --[[@as integer]], day = tonumber(d) --[[@as integer]] })) / 86400)
+    local ageDays = math.floor((time() - time({ year = y, month = m, day = d })) / 86400)
     if ageDays > VERSION_STALE_DAYS then
         self:Print("This version is " .. ageDays .. " days old. Please update to the latest version.")
     end
@@ -112,6 +113,7 @@ function PvPTooltip:Initialize()
         if not PvPTooltipDB.settings then
             PvPTooltipDB.settings = {
                 modifier = "always",        -- "always" | "shift" | "ctrl" | "alt"
+                layout = "panel",           -- "panel" | "compact" | "sections" | "classic"
                 showRating = true,
                 showExperience = true,
                 showSeason = true,
@@ -121,7 +123,15 @@ function PvPTooltip:Initialize()
                 },
                 showAllSpecs = true,
                 hideEmpty = false,
+                showInTRP3 = true,
             }
+        end
+        -- Keys added after the settings block shipped: backfill for existing users.
+        if PvPTooltipDB.settings.showInTRP3 == nil then
+            PvPTooltipDB.settings.showInTRP3 = true
+        end
+        if PvPTooltipDB.settings.layout == nil then
+            PvPTooltipDB.settings.layout = "panel"
         end
         
         -- Keep only the player's region character DB loaded on future sessions.
@@ -132,8 +142,8 @@ function PvPTooltip:Initialize()
         -- modules go last so everything they call into is ready.
         local initOrder = {
             "RealmResolver", "DatabaseManager", "PlayerLookup",
-            "ColorUtils", "TooltipRenderer", "SettingsPanel",
-            "EventManager", "SurfaceHooks",
+            "ColorUtils", "TooltipRenderer", "SettingsPanel", "Analytics",
+            "EventManager", "SurfaceHooks", "TRP3Integration",
         }
         for _, moduleName in ipairs(initOrder) do
             local module = self[moduleName]

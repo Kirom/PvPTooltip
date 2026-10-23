@@ -79,6 +79,10 @@ end
 -- duplicate lines). No-op when no unit tooltip is shown.
 function EventManager:RefreshActiveTooltip()
     if not GameTooltip or not GameTooltip:IsShown() then
+        -- TRP3 hides the GameTooltip and shows its own profile tooltip instead.
+        if PvPTooltip.TRP3Integration then
+            PvPTooltip.TRP3Integration:RefreshActiveTooltip()
+        end
         return
     end
     local _, unit = GameTooltip:GetUnit()
@@ -116,6 +120,22 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
 
     PvPTooltip:Debug("Processing tooltip for unit: " .. tostring(unitName) .. " (" .. tostring(unitID) .. ")")
 
+    self:EnhanceTooltipForUnit(tooltip, unitID)
+
+    local processingTime = (GetTime() - processingStartTime) * 1000 -- ms
+
+    if PvPTooltip.Config and PvPTooltip.Config.Performance and
+       PvPTooltip.Config.Performance.slowQueryThreshold and
+       processingTime > PvPTooltip.Config.Performance.slowQueryThreshold then
+        PvPTooltip:Debug(string.format("Slow tooltip processing: %.2fms for unit %s",
+            processingTime, tostring(unitName)))
+    end
+end
+
+-- Append the PvP block for `unitID` to `tooltip`. Returns true iff lines were
+-- added. Takes the unit explicitly so it also serves tooltips that carry no unit
+-- data of their own (TRP3's profile tooltip, built from plain AddLine calls).
+function EventManager:EnhanceTooltipForUnit(tooltip, unitID)
     -- Best-effort: the hovered unit's active spec, used to highlight the matching
     -- Solo Shuffle / Blitz line. Only available when inspect data is present (party,
     -- arena, recently inspected); 0/nil otherwise, in which case all specs show plainly.
@@ -127,38 +147,31 @@ function EventManager:ProcessTooltipUpdate(tooltip, startTime)
         end
     end
 
-    local enhanceOk, errorMsg = pcall(function()
-        self:EnhanceTooltipWithPvPInfo(tooltip, unitID, currentSpec)
-    end)
-
-    local processingTime = (GetTime() - processingStartTime) * 1000 -- ms
-
+    local enhanceOk, result = pcall(self.EnhanceTooltipWithPvPInfo, self, tooltip, unitID, currentSpec)
     if not enhanceOk then
-        PvPTooltip:Debug("Error enhancing tooltip: " .. tostring(errorMsg) .. " - graceful degradation")
-    elseif PvPTooltip.Config and PvPTooltip.Config.Performance and
-           PvPTooltip.Config.Performance.slowQueryThreshold and
-           processingTime > PvPTooltip.Config.Performance.slowQueryThreshold then
-        PvPTooltip:Debug(string.format("Slow tooltip processing: %.2fms for unit %s",
-            processingTime, tostring(unitName)))
+        PvPTooltip:Debug("Error enhancing tooltip: " .. tostring(result) .. " - graceful degradation")
+        return false
     end
+    return result
 end
 
 -- Enhance tooltip with PvP information. Errors are caught by the pcall in
--- ProcessTooltipUpdate, so a broken lookup never breaks the underlying tooltip.
+-- EnhanceTooltipForUnit, so a broken lookup never breaks the underlying tooltip.
+-- Returns true iff lines were added.
 function EventManager:EnhanceTooltipWithPvPInfo(tooltip, unitID, currentSpec)
     if not (PvPTooltip.PlayerLookup and PvPTooltip.TooltipRenderer) then
         PvPTooltip:Debug("Lookup/renderer module not available - graceful degradation")
-        return
+        return false
     end
 
     local playerData = PvPTooltip.PlayerLookup:FindPlayerData(unitID)
     if not playerData then
         -- No data for this player: leave the tooltip untouched (quiet).
         PvPTooltip:Debug("No PvP data found for unit: " .. tostring(unitID))
-        return
+        return false
     end
 
-    PvPTooltip.TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
+    return PvPTooltip.TooltipRenderer:EnhanceTooltip(tooltip, playerData, currentSpec)
 end
 
 -- Append the PvP block to an arbitrary tooltip for a player identified by name

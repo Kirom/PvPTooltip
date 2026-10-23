@@ -6,6 +6,77 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2026.10.14.2] - 2026-10-14
+
+### Added
+- Four tooltip layouts: **Panel** with column headers and a rating bar per bracket
+  (fill = current rating, tick = personal best), **Compact** (one line per bracket),
+  **Sections**, and **Classic** (the original look).
+- Settings → General → **Tooltip layout** to switch between them, with live preview.
+- Spec icons on Solo Shuffle and Blitz rows; the hovered player's other specs are dimmed.
+- Layout usage is reported through Wago Analytics for Wago App users
+  (opt out in the Wago App settings).
+
+### Changed
+- Panel is the new default layout. Pick **Classic** in `/pvpt` to keep the old look.
+- Columns are now named Current / Best / Played / Win%.
+
+### Deprecated
+- 
+
+### Removed
+- 
+
+### Fixed
+- 
+
+### Security
+-
+
+---
+
+**Support:** [Discord](https://discord.gg/A5N6KEgbCc) · [GitHub Issues](https://github.com/PvPTooltip/PvPTooltip/issues)
+
+Happy PvP hunting! 🗡️⚔️
+
+## [2026.10.14] - 2026-10-14
+
+### Changed
+- Updated addon compatibility for WoW 12.1.5 (Interface `120105`).
+
+---
+
+**Support:** [Discord](https://discord.gg/A5N6KEgbCc) · [GitHub Issues](https://github.com/PvPTooltip/PvPTooltip/issues)
+
+Happy PvP hunting! 🗡️⚔️
+
+## [2026.10.10] - 2026-10-10
+
+### Added
+- Total RP 3 support: PvP ratings now appear at the bottom of TRP3 profile tooltips instead of disappearing with the default tooltip (#5).
+- Settings → Integrations → **Show in Total RP 3 tooltips** to turn this off (only shown when TRP3 is installed).
+
+### Changed
+- 
+
+### Deprecated
+- 
+
+### Removed
+- 
+
+### Fixed
+- 
+
+### Security
+-
+
+---
+
+**Support:** [Discord](https://discord.gg/A5N6KEgbCc) · [GitHub Issues](https://github.com/PvPTooltip/PvPTooltip/issues)
+
+Happy PvP hunting! 🗡️⚔️
+
 ## [1.0.1] - 2026-08-12
 
 ### Added
