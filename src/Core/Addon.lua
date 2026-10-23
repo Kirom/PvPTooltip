@@ -58,7 +58,7 @@ function PvPTooltip:CheckVersionFreshness()
     if not y then
         return
     end
-    local ageDays = math.floor((time() - time({ year = tonumber(y), month = tonumber(m), day = tonumber(d) })) / 86400)
+    local ageDays = math.floor((time() - time({ year = tonumber(y) --[[@as integer]], month = tonumber(m) --[[@as integer]], day = tonumber(d) --[[@as integer]] })) / 86400)
     if ageDays > VERSION_STALE_DAYS then
         self:Print("This version is " .. ageDays .. " days old. Please update to the latest version.")
     end
