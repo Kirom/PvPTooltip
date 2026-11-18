@@ -130,7 +130,7 @@ function SettingsPanel:Initialize()
     -- Master enable + debug live at the top level of PvPTooltipDB (slash commands
     -- read them), so bind directly there. SetEnabled also (re)registers events.
     checkbox(PvPTooltipDB, "enabled", "Enable PvPTooltip",
-        "Show PvP ratings in unit tooltips.", true,
+        "Show PvP ratings in unit tooltips. Off: PvPTooltip adds nothing to tooltips, but addons that read its data through PvPTooltip.API keep working.", true,
         function(value) PvPTooltip:SetEnabled(value) end)
 
     local modSetting = Settings.RegisterAddOnSetting(

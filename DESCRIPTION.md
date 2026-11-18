@@ -106,6 +106,10 @@ Databases are refreshed **frequently** to ensure you always see the most current
 3. **Keep it updated** (enable auto-update) for the freshest data
 4. Enjoy enhanced player tooltips immediately!
 
+## 🧩 For Addon Authors
+
+Other addons can read PvPTooltip's ratings (current, all-time best, season best, games, win rate, per-spec Shuffle/Blitz) through `PvPTooltip.API.GetRating(name, realm, bracket[, specId])`. It keeps working when PvPTooltip's own tooltip is turned off. See the [README](https://github.com/Kirom/PvPTooltip#developer-api) for details.
+
 ## 🔒 Privacy
 
 PvP Tooltip never connects to the internet. If you use the Wago App with analytics on, it reports which tooltip layout you use (and any PvP Tooltip errors) through Wago Analytics, so we know which layouts are worth improving. You can opt out in the Wago App settings.

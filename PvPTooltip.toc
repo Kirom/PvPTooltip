@@ -31,6 +31,7 @@ src\Core\Analytics.lua
 src\Data\DatabaseManager.lua
 src\Data\RealmResolver.lua
 src\Data\PlayerLookup.lua
+src\Core\API.lua
 
 # UI components
 src\UI\ColorUtils.lua

@@ -146,6 +146,33 @@ Tooltips are enhanced wherever a unit tooltip shows: open-world players, party a
 
 With [Total RP 3](https://www.curseforge.com/wow/addons/total-rp-3) installed, the PvP block is appended to the bottom of TRP3's profile tooltip when it replaces the default one. Turn this off under **Integrations** in the settings panel.
 
+## Developer API
+
+Other addons can read PvPTooltip's rating database through `PvPTooltip.API`. Add `## OptionalDeps: PvPTooltip` (or `## Dependencies: PvPTooltip`) to your TOC. The API keeps working when the user turns off PvPTooltip's own tooltip (**General → Enable PvPTooltip**).
+
+```lua
+if PvPTooltip and PvPTooltip.API and PvPTooltip.API.version >= 1 and PvPTooltip.API.IsReady() then
+    -- One table per spec played: { {current=, allTimeBest=, seasonBest=, games=, winRate=, specId=}, ... }
+    local specs = PvPTooltip.API.GetRating("Name-Realm", nil, "shuffle")
+    -- One spec only (or nil): { current, allTimeBest, seasonBest, games, winRate, specId }
+    local mw = PvPTooltip.API.GetRating("Name", "Realm", "shuffle", 270)
+    -- Non-spec brackets return a single table (specId is nil)
+    local arena = PvPTooltip.API.GetRating("Name-Realm", nil, "3v3")
+end
+```
+
+- `PvPTooltip.API.version` — `1`; bumped only on breaking changes.
+- `PvPTooltip.API.IsReady()` — `true` once the region database is loaded.
+- `PvPTooltip.API.GetRating(name, realm, bracket[, specId])` — `bracket` is `"2v2"`, `"3v3"`, `"rbg"`, `"shuffle"` (or `"ss"`) or `"blitz"` (or `"btz"`). `name` is case-sensitive, as shown in game. `realm` is optional: it defaults to the realm in `"Name-Realm"`, then your own. Returns `nil` when the player or bracket isn't in the database. `winRate` is a percentage (0–100); `games` counts this season.
+
+Caveats:
+
+- `allTimeBest` is the highest rating PvPTooltip's data pipeline has observed (kept across seasons), not Blizzard's true lifetime peak.
+- Only characters with a rated game this season are in the database.
+- Data is a snapshot from the last database refresh, not live.
+
+If you build on this data, please list PvPTooltip as a required dependency on CurseForge / Wago instead of bundling its data files, and credit the project.
+
 ## Data Freshness
 
 Player rating data ships as separate per-region add-ons — **PvPTooltip_DataEU** and **PvPTooltip_DataUS** — so only your region's database loads. Realm and region mapping data lives in `src/db/` and loads with the main addon. All are generated externally and refreshed frequently from current ranked data. For the most accurate ratings, **keep the addon updated** (enable auto-update in your addon manager, install all bundled add-ons).
