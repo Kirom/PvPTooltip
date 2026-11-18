@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2026.11.18] - 2026-11-18
+
+### Added
+- **Public API for other addons**: `PvPTooltip.API.GetRating(name, realm, bracket[, specId])`
+  returns current rating, all-time best, season best, games played and win rate for
+  2v2, 3v3, RBG, Solo Shuffle and Blitz (per spec for Shuffle and Blitz).
+  `PvPTooltip.API.IsReady()` and `PvPTooltip.API.version` let addons detect it.
+  See the README's **Developer API** section.
+
+### Changed
+- Settings → General → **Enable PvPTooltip** now explains that turning it off hides
+  PvPTooltip's tooltip lines while addons using the API keep working.
+
+### Deprecated
+- 
+
+### Removed
+- 
+
+### Fixed
+- 
+
+### Security
+-
+
+---
+
+**Support:** [Discord](https://discord.gg/A5N6KEgbCc) · [GitHub Issues](https://github.com/PvPTooltip/PvPTooltip/issues)
+
+Happy PvP hunting! 🗡️⚔️
+
 ## [2026.10.14.2] - 2026-10-14
 
 ### Added
