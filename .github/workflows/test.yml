@@ -31,6 +31,20 @@ jobs:
 
           echo "OK: TOC file validation passed"
 
+      - name: Check data add-on Interface versions match main add-on
+        run: |
+          main=$(sed -n 's/^## Interface:[[:space:]]*//p' PvPTooltip.toc | tr -d '\r[:space:]')
+          echo "Main Interface: $main"
+          fail=0
+          for toc in data/*/*.toc; do
+            v=$(sed -n 's/^## Interface:[[:space:]]*//p' "$toc" | tr -d '\r[:space:]')
+            if [ "$v" != "$main" ]; then
+              echo "::error file=$toc::Interface '$v' does not match PvPTooltip.toc '$main'"
+              fail=1
+            fi
+          done
+          exit $fail
+
       - name: Validate Lua syntax
         run: |
           echo "Installing luacheck..."
